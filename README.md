@@ -18,7 +18,6 @@ Sắc Việt là hệ thống nghiên cứu và triển khai tô màu ảnh, vid
 - [Cấu trúc dự án](#cấu-trúc-dự-án)
 - [Giới hạn](#giới-hạn)
 - [Phần mềm bên thứ ba](#phần-mềm-bên-thứ-ba)
-- [Nhóm thực hiện](#nhóm-thực-hiện)
 
 ## Mục tiêu và phạm vi
 
@@ -353,12 +352,3 @@ DDColor:
 - Bài báo: Xia, Z., Shen, X., Huang, J., Chen, J., & Ji, R. (2023), “DDColor: Towards Photo-Realistic and Consistent Image Colorization with Dual Decoders”, ICCV 2023.
 
 Các dependency khác giữ nguyên giấy phép tương ứng của từng dự án. Thư mục demo vendored của DDColor thuộc upstream và không được ứng dụng Sắc Việt gọi trực tiếp.
-
-## Nhóm thực hiện
-
-| Thành viên | Mã số sinh viên | Phụ trách chính |
-|---|---:|---|
-| Lê Hữu Hưng | 22656001 | Kiến trúc VietColorNet, edge stream, strip pooling, CPCA, decoupled chroma và distillation |
-| Nguyễn Văn Tùng | 22647011 | Dữ liệu lịch sử, protocol, hậu xử lý, giao diện Sắc Việt, benchmark và báo cáo |
-
-Đề tài được thực hiện trong khuôn khổ khóa luận tốt nghiệp tại Khoa Công nghệ Thông tin, Trường Đại học Công nghiệp TP. Hồ Chí Minh.
