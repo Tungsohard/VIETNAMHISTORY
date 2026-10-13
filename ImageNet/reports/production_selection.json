@@ -1,0 +1,19 @@
+{
+  "criterion": "Best balanced still-image candidate available at product freeze; historical-still quality improves while established Vietnam regression remains small.",
+  "status": "product_freeze_v1",
+  "winner": {
+    "name": "v6",
+    "display_name": "DDColor V6 · Bản ảnh tĩnh",
+    "checkpoint": "../runs/ddcolor_historical_still_replay_v6/best.pth",
+    "sha256": "b1f26077846e4765976fb4188a11c225cd5a68b3682249eb90d49f817db7acfc",
+    "epoch": 7,
+    "model": "ddcolor",
+    "architecture": "convnext-t",
+    "training_protocol_sha256": "17937a36295b6e85b9c76a391646d2a9828cd488ba72883ebeba0424ae3d8cd5"
+  },
+  "evidence": {
+    "outcome": "vietnam_v6_outcome.json",
+    "historical_validation": "historical_stills_v6_validation/comparison.json",
+    "vietnam_regression": "v6_vietnam_regression/comparison.json"
+  }
+}

@@ -128,6 +128,18 @@ python doctor.py
 
 Các dependency trực tiếp gồm NumPy, OpenCV, Pillow, scikit-image, LPIPS, Hugging Face Hub, PyYAML, SciPy, Requests, Gradio, imageio-ffmpeg và pywebview. Phiên bản cụ thể được giới hạn trong `ImageNet/requirements.txt`.
 
+### Dữ liệu và trọng số không lưu trên Git
+
+Repository chứa mã nguồn hệ thống nhưng không chứa dataset, môi trường ảo, checkpoint huấn luyện hoặc binary đã build vì các artefact này có dung lượng từ hàng trăm MB đến hàng chục GB. Sau khi clone, cần chuẩn bị dữ liệu bằng các script `prepare_*.py` và đặt checkpoint vào đúng đường dẫn được khai báo trong selection/config tương ứng.
+
+Checkpoint DDColor chính thức có thể tải bằng:
+
+```powershell
+python download_ddcolor.py --model ddcolor_paper
+```
+
+Checkpoint DDColor V6 và VietColorNet đã fine-tune là artefact của quá trình huấn luyện, không nằm trong Git. `verify_product.py` sẽ báo rõ checkpoint hoặc checksum còn thiếu trước khi chạy giao diện.
+
 Kiểm tra môi trường, DDColor và unit test:
 
 ```powershell
@@ -309,9 +321,8 @@ Khi thay checkpoint DDColor:
 
 ```text
 KHOA_LUAN/
+├── .gitignore
 ├── README.md
-├── Bao_cao.docx
-├── dataset/
 └── ImageNet/
     ├── colorization/          # model, dataset, inference, metric, temporal runtime
     ├── configs/               # cấu hình DDColor, VietColorNet và ablation
@@ -330,7 +341,7 @@ KHOA_LUAN/
     └── requirements.txt
 ```
 
-Các thư mục `.venv/`, `data/raw/`, `data/processed/`, `runs/`, `reports/`, `demo_outputs/` và checkpoint `*.pth`/`*.pt` được bỏ qua theo `.gitignore` của module để tránh đưa dữ liệu hoặc artefact lớn vào Git ngoài ý muốn. Các selection/report cần công bố phải được thêm có chủ đích.
+Các thư mục `.venv/`, `data/`, `runs/`, `pretrained/`, `build/`, `dist/`, `release/`, `demo_outputs/` và checkpoint `*.pth`/`*.pt` được bỏ qua để tránh đưa dữ liệu hoặc artefact lớn vào Git ngoài ý muốn. Repository chỉ giữ `reports/production_selection.json`; các report khác phải được thêm có chủ đích nếu cần công bố.
 
 ## Giới hạn
 

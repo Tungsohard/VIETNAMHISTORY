@@ -1,0 +1,39 @@
+# README is the single Markdown document in this repository.
+**/*.md
+!/README.md
+
+# Local thesis documents and datasets.
+*.docx
+*.pdf
+/dataset/
+
+# Python environments and caches.
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+
+# Large datasets, checkpoints and training outputs.
+/ImageNet/data/
+/ImageNet/runs/
+/ImageNet/pretrained/
+/ImageNet/demo_outputs/
+**/*.pth
+**/*.pt
+**/*.ckpt
+
+# Generated reports are local; keep only the product selection manifest.
+/ImageNet/reports/*
+!/ImageNet/reports/production_selection.json
+
+# Generated application binaries and research scratch space.
+/ImageNet/build/
+/ImageNet/dist/
+/ImageNet/release/
+/ImageNet/scratch/
+
+# OS and editor files.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
