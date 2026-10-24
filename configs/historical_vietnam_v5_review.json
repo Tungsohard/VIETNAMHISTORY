@@ -1,0 +1,16 @@
+{
+  "protocol": "historical_manual_review_policy_v1",
+  "reviewed_contact_sheet": "data/sources/historical_vietnam_v5_candidates/contact_operation_medina_1967.jpg",
+  "video_exclusions": {},
+  "time_exclusions": {
+    "operation_medina_1967": [
+      [75, 86, "reject_too_dark_manual"],
+      [120, 131, "reject_too_dark_manual"],
+      [240, 251, "reject_too_dark_manual"],
+      [285, 296, "reject_sensitive_or_ambiguous_closeup"],
+      [315, 326, "reject_too_dark_manual"],
+      [420, 431, "reject_too_dark_manual"],
+      [480, 491, "reject_too_dark_manual"]
+    ]
+  }
+}

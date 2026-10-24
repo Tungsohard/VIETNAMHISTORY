@@ -1,0 +1,15 @@
+# Install a CUDA-enabled torch/torchvision build first from pytorch.org.
+numpy>=1.24,<3
+opencv-python>=4.8,<5
+Pillow>=10,<13
+tqdm>=4.66,<5
+scikit-image>=0.22,<1
+lpips==0.1.4
+huggingface-hub>=0.23,<2
+PyYAML>=6,<7
+scipy>=1.10,<2
+requests>=2.31,<3
+gradio>=5.49,<6
+imageio-ffmpeg>=0.5,<1
+pyarrow>=17,<24
+segment-anything==1.0

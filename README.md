@@ -2,7 +2,7 @@
 
 Sắc Việt là hệ thống nghiên cứu và triển khai tô màu ảnh, video tư liệu lịch sử Việt Nam bằng học sâu. Dự án phát triển **VietColorNet** như kiến trúc đề xuất của khóa luận, đồng thời dùng **DDColor** làm baseline/đối chứng và teacher trong các thí nghiệm chưng cất tri thức.
 
-> Trạng thái hiện tại: checkpoint vận hành được đóng băng trong `ImageNet/reports/production_selection.json` là **DDColor V6**. VietColorNet V6 refined là ứng viên nghiên cứu tốt nhất của nhánh VietColorNet hiện có và được ưu tiên khi chạy local nếu checkpoint tồn tại, nhưng chưa đạt toàn bộ cổng phát hành. V7 và V7.1 là các ablation đã hoàn tất, không thay thế V6 refined.
+> Trạng thái hiện tại: ứng dụng web dùng mặc định **VietColorNet V15 epoch 3** (384 px) kèm pipeline phục hồi ảnh và chống lem màu bằng SAM; V12, V10, V6 refined và DDColor V6 vẫn chọn được trong menu. Checkpoint DDColor V6 vẫn là checkpoint vận hành đóng băng trong `outputs/reports/production_selection.json` (baseline đối chứng). V15 chính xác hơn V12 trên cả ảnh hiện đại và phim lịch sử chưa từng thấy nhưng vẫn chưa đạt cổng phân bố chroma; màu cây cỏ vẫn lệch vàng so với màu thật (xem mục V10–V15).
 
 ## Mục lục
 
@@ -14,7 +14,7 @@ Sắc Việt là hệ thống nghiên cứu và triển khai tô màu ảnh, vid
 - [Chạy ứng dụng Sắc Việt](#chạy-ứng-dụng-sắc-việt)
 - [Huấn luyện và đánh giá](#huấn-luyện-và-đánh-giá)
 - [Kết quả nghiên cứu đã kiểm chứng](#kết-quả-nghiên-cứu-đã-kiểm-chứng)
-- [Đóng gói Windows](#đóng-gói-windows)
+- [Thay checkpoint vận hành](#thay-checkpoint-vận-hành)
 - [Cấu trúc dự án](#cấu-trúc-dự-án)
 - [Giới hạn](#giới-hạn)
 - [Phần mềm bên thứ ba](#phần-mềm-bên-thứ-ba)
@@ -28,7 +28,7 @@ Dự án tập trung vào các mục tiêu sau:
 - So sánh VietColorNet với DDColor trên cùng protocol và cùng bộ metric.
 - Thử nghiệm domain adaptation trên dữ liệu Việt Nam, dữ liệu Wikimedia Commons và ảnh/video lịch sử.
 - Cung cấp ứng dụng Gradio “Sắc Việt” để chạy suy luận cục bộ và đối chiếu A/B.
-- Đóng gói ứng dụng Windows bằng PyInstaller/Inno Setup.
+- Chạy dưới dạng ứng dụng web (Gradio) trên trình duyệt.
 
 Hệ thống dùng không gian màu CIE Lab: mô hình nhận kênh độ sáng `L` và dự đoán hai kênh màu `a/b`. Ảnh kết quả được ghép lại và chuyển về RGB, đồng thời giữ kích thước đầu vào khi suy luận.
 
@@ -36,7 +36,7 @@ Hệ thống dùng không gian màu CIE Lab: mô hình nhận kênh độ sáng 
 
 ### VietColorNet
 
-- Là **mô hình đề xuất do nhóm tự thiết kế và triển khai** trong `ImageNet/colorization/model.py`.
+- Là **mô hình đề xuất do nhóm tự thiết kế và triển khai** trong `colorization/model.py`.
 - Không phải là một biến thể của DDColor.
 - Có thể học từ DDColor bằng knowledge distillation; điều đó không thay đổi nguồn gốc kiến trúc.
 - Các nhánh V5, V6, V7 và V7.1 là các vòng nghiên cứu/ablation kế tiếp của VietColorNet.
@@ -45,7 +45,7 @@ Hệ thống dùng không gian màu CIE Lab: mô hình nhận kênh độ sáng 
 
 - Là kiến trúc bên thứ ba của Xia và cộng sự, dùng làm **baseline/đối chứng** và teacher.
 - Mã nguồn upstream được tích hợp tại commit `2adb63f2656ac41cbdf7b894cddd94121a3faf13` theo Apache License 2.0.
-- `ImageNet/colorization/ddcolor_adapter.py` chỉ chuyển đổi giao diện tensor CIE Lab để DDColor dùng chung data loader, runtime và metric của dự án.
+- `colorization/ddcolor_adapter.py` chỉ chuyển đổi giao diện tensor CIE Lab để DDColor dùng chung data loader, runtime và metric của dự án.
 - Việc fine-tune DDColor trên dữ liệu Việt Nam không biến DDColor thành kiến trúc do nhóm tự xây dựng.
 
 ### Trạng thái lựa chọn model
@@ -53,9 +53,11 @@ Hệ thống dùng không gian màu CIE Lab: mô hình nhận kênh độ sáng 
 | Phạm vi | Model/checkpoint | Trạng thái |
 |---|---|---|
 | Vận hành đóng băng | DDColor V6, epoch 7 | Được ghi trong `production_selection.json` và kiểm tra SHA-256 khi nạp |
-| VietColorNet local testing | VietColorNet V6 refined, epoch 4 | Ứng viên nghiên cứu tốt nhất; chưa đạt cổng phát hành |
+| VietColorNet mặc định trong demo | **VietColorNet V15, epoch 3** (384 px) | Tốt nhất trên test hiện đại và test phim lịch sử; chưa đạt cổng phát hành |
+| VietColorNet lựa chọn khác | V12 epoch 6, V10 epoch 7, V6 refined epoch 4 | Màu tươi hơn nhưng ám vàng nâu nhiều hơn; giữ để so sánh |
 | Mốc rollback VietColorNet | VietColorNet Master V4 | Giữ để tái lập và so sánh |
 | V7/V7.1 | DINOv2, palette loss và MoE ablations | Đã đánh giá, không phát hành |
+| V11, V13, V14 | Thêm 220 ảnh quân đội; 512 px + cân bằng màu hiếm; đầu ra phân loại màu | Đã đánh giá, không thay V12/V15 (xem mục V10–V15) |
 
 Quyết định checkpoint vận hành là kết quả thực nghiệm, không thay đổi vai trò học thuật: VietColorNet vẫn là mô hình đề xuất và DDColor vẫn là baseline.
 
@@ -72,6 +74,10 @@ VietColorNet kết hợp các thành phần chính sau:
 7. **Chroma calibration:** V6 bổ sung residual chroma cục bộ, neutral confidence và hệ số chroma theo ảnh.
 
 V7/V7.1 thử thêm DINOv2-S/14 làm semantic bridge, soft palette contrastive loss và palette mixture-of-experts. Các thí nghiệm này có tác động đến phân bố chroma nhưng chưa cải thiện đồng thời độ chính xác màu và chất lượng cảm nhận so với V6 refined.
+
+V8–V13 dùng cùng kiến trúc V7 (`vietcolornet_v8` ánh xạ tới `VietColorNetV7`); khác biệt nằm ở dữ liệu, độ phân giải và hàm loss. `VietColorNetV14` thay đầu ra hồi quy `a/b` bằng đầu ra phân loại 259 ô màu (giải mã annealed mean, T = 0,38) như thí nghiệm, không phát hành.
+
+**Thành phần pretrained (bên thứ ba, không phải mô hình tô màu):** ResNet-34 (torchvision, ImageNet) làm encoder, DINOv2-S/14 (Meta, Apache-2.0) làm semantic bridge cố định, và Segment Anything ViT-B (Meta, Apache-2.0) chỉ dùng ở suy luận để tìm ranh giới vật thể chống lem màu. Toàn bộ phần dự đoán màu (edge stream, CPCA palette attention, decoder, đầu ra màu) là do nhóm thiết kế; không dùng mô hình tô màu bên ngoài làm teacher từ V9 trở đi.
 
 ## Dữ liệu và protocol
 
@@ -94,6 +100,20 @@ Protocol V1 chia theo video để tránh frame gần nhau xuất hiện ở nhi�
 
 Sau khi kết quả của `HaNoi12NgayDem` được dùng để quyết định cải tiến, tập này được xem là development test, không còn là test cuối độc lập.
 
+### Dữ liệu từ V9 trở đi (màu hiện đại + phim tư liệu)
+
+| Nguồn | Vai trò | Ghi chú |
+|---|---|---|
+| Viet-Cultural-VQA, KTVIC, Wikimedia Commons | Train/validation/test màu hiện đại | Split val/test chính thức của VQA/KTVIC; loại trùng chính xác và gần trùng (dHash) |
+| Ảnh quân đội Việt Nam (Wikimedia Commons) | Train | 944 ảnh có giấy phép, giữ 667 ảnh chụp thật sau khi bỏ cờ, huy hiệu, bản đồ, giấy tờ, ảnh đen trắng |
+| ImageNet chọn lọc (replay) | Train | 36.797 ảnh màu của 32 lớp quân sự và cảnh Việt Nam (xe tăng, pháo, quân phục, trâu, nhà tranh…) |
+| ViCoW (4 phim) | Train/validation/test lịch sử | Chia theo phim; ảnh train được hiệu chỉnh nhẹ |
+
+- **V15:** train 62.172 ảnh (VQA 19.247, KTVIC 3.749, Wikimedia 477, quân đội 667, ViCoW 1.235, ImageNet chọn lọc 36.797), lấy mẫu có trọng số; validation 1.025 ảnh; test 1.193 ảnh.
+- **ViCoW chia theo phim, không dùng split gốc.** Split gốc của ViCoW (1.327/187/382) là ngẫu nhiên theo khung hình và cả 4 phim đều có ở mọi tập: 75% ảnh test (288/382) có một ảnh train cách không quá 2 khung hình trong cùng phim, nên điểm số bị thổi phồng. Protocol V15 train trên *Những người viết huyền thoại* và *Vào Nam ra Bắc*, validation *Mùi cỏ cháy*, test *Hà Nội 12 ngày đêm*.
+- **Hiệu chỉnh ViCoW train** (`scripts/prepare/correct_vicow_colors.py`): khung hình 1280×720 được phóng từ video độ phân giải thấp nên mềm. Kênh L được làm nét (độ nét tăng gấp đôi), chroma được căn lại theo biên bằng guided filter, khử ám màu nhẹ trên vùng gần trung tính và tăng nhẹ độ đậm cho phim bị phai. Phần lớn màu xanh của *Vào Nam ra Bắc* là rừng thật nên chỉnh có giới hạn. Phim validation/test giữ nguyên bản gốc vì là đáp án để đo.
+- Màu "chuẩn" của ViCoW là màu phim cũ (độ đậm khoảng 9–10 so với 17–19 của ảnh hiện đại), nên trên phim này chroma ratio thấp hơn không có nghĩa là kém hơn; điểm chọn epoch loại tập validation ViCoW (`selection_exclude_sources`) và chỉ theo dõi nó.
+
 ### Wikimedia Commons và dữ liệu lịch sử
 
 - Collector dùng API Wikimedia Commons, lưu metadata, tác giả, URL nguồn, giấy phép và credit trong `attribution.csv`.
@@ -109,12 +129,12 @@ Yêu cầu khuyến nghị:
 
 - Python 3.11.
 - GPU NVIDIA có CUDA; cấu hình dự án đã được tối ưu và thử nghiệm trên RTX 3050 Laptop 6 GB.
-- Windows PowerShell cho các script build và launcher hiện có.
+- Windows PowerShell cho các lệnh cài đặt và chạy trong README.
 
 Từ thư mục dự án:
 
 ```powershell
-cd ImageNet
+cd KHOA_LUAN
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
@@ -126,16 +146,16 @@ python -m pip install -r requirements.txt
 python doctor.py
 ```
 
-Các dependency trực tiếp gồm NumPy, OpenCV, Pillow, scikit-image, LPIPS, Hugging Face Hub, PyYAML, SciPy, Requests, Gradio, imageio-ffmpeg và pywebview. Phiên bản cụ thể được giới hạn trong `ImageNet/requirements.txt`.
+Các dependency trực tiếp gồm NumPy, OpenCV, Pillow, scikit-image, LPIPS, Hugging Face Hub, PyYAML, SciPy, Requests, Gradio, imageio-ffmpeg và segment-anything. Phiên bản cụ thể được giới hạn trong `requirements.txt`.
 
 ### Dữ liệu và trọng số không lưu trên Git
 
-Repository chứa mã nguồn hệ thống nhưng không chứa dataset, môi trường ảo, checkpoint huấn luyện hoặc binary đã build vì các artefact này có dung lượng từ hàng trăm MB đến hàng chục GB. Sau khi clone, cần chuẩn bị dữ liệu bằng các script `prepare_*.py` và đặt checkpoint vào đúng đường dẫn được khai báo trong selection/config tương ứng.
+Repository chứa mã nguồn hệ thống nhưng không chứa dataset, môi trường ảo, checkpoint huấn luyện hoặc binary đã build vì các artefact này có dung lượng từ hàng trăm MB đến hàng chục GB. Sau khi clone, cần chuẩn bị dữ liệu bằng các script trong `scripts/prepare/` (mô tả từng nguồn dữ liệu trong `data/sources/README.md`) và đặt checkpoint vào đúng đường dẫn được khai báo trong selection/config tương ứng.
 
 Checkpoint DDColor chính thức có thể tải bằng:
 
 ```powershell
-python download_ddcolor.py --model ddcolor_paper
+python scripts/prepare/download_ddcolor.py --model ddcolor_paper
 ```
 
 Checkpoint DDColor V6 và VietColorNet đã fine-tune là artefact của quá trình huấn luyện, không nằm trong Git. `verify_product.py` sẽ báo rõ checkpoint hoặc checksum còn thiếu trước khi chạy giao diện.
@@ -184,17 +204,19 @@ Các chế độ khác:
 
 Ứng dụng:
 
-- Tự nạp DDColor từ `ImageNet/reports/production_selection.json` nếu checkpoint hợp lệ.
-- Tìm VietColorNet theo thứ tự ưu tiên V6 refined → Master V4 → V3 → các checkpoint cũ hơn.
+- Tự nạp DDColor từ `outputs/reports/production_selection.json` nếu checkpoint hợp lệ.
+- Tìm VietColorNet theo thứ tự ưu tiên V15 epoch 3 → V12 epoch 6 → V10 epoch 7 → V9 epoch 3 → V8 epoch 1 → V6 refined → Master V4 → các checkpoint cũ hơn; V12, V10 và V6 refined vẫn có trong menu chọn mô hình.
+- Chống lem màu bằng SAM (`colorization/segmentation.py`): mỗi ảnh mất khoảng 4–6 giây trên RTX 3050 6 GB; tắt bằng `--no-sam`.
 - Chọn VietColorNet làm model mặc định khi checkpoint này nạp thành công; nếu không sẽ dùng model khả dụng đầu tiên.
-- Hỗ trợ tô màu ảnh, so sánh A/B DDColor–VietColorNet, lưu PNG vào `ImageNet/demo_outputs/` và giữ độ phân giải ảnh gốc.
+- Hỗ trợ tô màu ảnh, so sánh A/B DDColor–VietColorNet, lưu PNG vào `outputs/demo_outputs/` và giữ độ phân giải ảnh gốc.
 - Có giới hạn 40 megapixel cho ảnh đầu vào.
+- Ba chế độ xử lý (`colorization/enhance.py`): **Hiện đại** (mặc định: phục hồi ảnh mờ/nhiễu → tô màu → chống lem → khử ám màu và tăng độ tươi), **Rực rỡ** (như Hiện đại, màu đậm hơn), **Nguyên bản** (chỉ chống lem). Không truyền `mode` thì `ColorizationEngine` trả về màu thô của mô hình, dùng cho đánh giá.
 - Khi bật video, dùng optical flow để làm dịu biến động chroma và reset khi phát hiện chuyển cảnh.
 
 Có thể chỉ định checkpoint VietColorNet khác:
 
 ```powershell
-.\.venv\Scripts\python.exe demo.py --checkpoint runs\vietcolornet_v6_refined\best.pth
+.\.venv\Scripts\python.exe demo.py --checkpoint checkpoints\runs\vietcolornet_v6_refined\best.pth
 ```
 
 ## Huấn luyện và đánh giá
@@ -202,14 +224,14 @@ Có thể chỉ định checkpoint VietColorNet khác:
 ### Chuẩn bị ImageNet
 
 ```powershell
-python prepare_data.py
+python scripts/prepare/prepare_data.py
 ```
 
 Script từ chối ghi đè manifest đã tồn tại. Khi cần checkpoint DDColor chính thức:
 
 ```powershell
-python download_ddcolor.py --model ddcolor_paper
-python register_pretrained.py --output runs/ddcolor_official
+python scripts/prepare/download_ddcolor.py --model ddcolor_paper
+python scripts/prepare/register_pretrained.py --output checkpoints/runs/ddcolor_official
 ```
 
 Không dùng `ddcolor_artistic` cho baseline ImageNet-only vì model đó được huấn luyện thêm trên dữ liệu riêng.
@@ -219,7 +241,7 @@ Không dùng `ddcolor_artistic` cho baseline ImageNet-only vì model đó đư�
 ```powershell
 python train.py `
   --config configs/ddcolor_smoke.json `
-  --output runs/smoke_ddcolor `
+  --output checkpoints/runs/smoke_ddcolor `
   --train-limit 16 `
   --val-limit 8
 ```
@@ -229,9 +251,9 @@ Run có `--train-limit` hoặc `--val-limit` chỉ dùng chẩn đoán và khôn
 Ví dụ huấn luyện DDColor và các baseline:
 
 ```powershell
-python train.py --config configs/ddcolor_tiny_budgeted.json --output runs/ddcolor_tiny_budgeted
-python train.py --config configs/resnet18.json --output runs/resnet18
-python train.py --config configs/resnet34.json --output runs/resnet34
+python train.py --config configs/ddcolor_tiny_budgeted.json --output checkpoints/runs/ddcolor_tiny_budgeted
+python train.py --config configs/resnet18.json --output checkpoints/runs/resnet18
+python train.py --config configs/resnet34.json --output checkpoints/runs/resnet34
 ```
 
 Tiếp tục run bị gián đoạn bằng đúng config và thư mục cũ:
@@ -239,8 +261,8 @@ Tiếp tục run bị gián đoạn bằng đúng config và thư mục cũ:
 ```powershell
 python train.py `
   --config configs/ddcolor_tiny.json `
-  --output runs/ddcolor_tiny `
-  --resume runs/ddcolor_tiny/latest.pth
+  --output checkpoints/runs/ddcolor_tiny `
+  --resume checkpoints/runs/ddcolor_tiny/latest.pth
 ```
 
 ### Domain adaptation Việt Nam
@@ -248,25 +270,48 @@ python train.py `
 ```powershell
 python fine_tune_vietnam.py `
   --config configs/ddcolor_vietnam_adaptation_v2.json `
-  --output runs/ddcolor_vietnam_adaptation_v2
+  --output checkpoints/runs/ddcolor_vietnam_adaptation_v2
 ```
 
 Pipeline hỗ trợ protocol riêng, checkpoint nguồn, teacher checkpoint, distillation, dữ liệu Wikimedia, dữ liệu lịch sử và resume. Mỗi run phải giữ nguyên config, manifest và seed để tái lập.
+
+### Huấn luyện V15 (ảnh hiện đại + phim tư liệu)
+
+```powershell
+python scripts/prepare/correct_vicow_colors.py
+python scripts/prepare/prepare_v15_vicow_protocol.py
+python fine_tune_vietnam.py `
+  --config configs/vietcolornet_v15_vicow.json `
+  --protocol data/protocols/vietnam_modern_vicow_v15/manifest.json `
+  --imagenet-manifest data/processed/imagenet_targeted_v10.json `
+  --source-checkpoint checkpoints/runs/vietcolornet_v12_384/epoch_06.pth `
+  --output checkpoints/runs/vietcolornet_v15_vicow
+```
+
+So sánh checkpoint trên ảnh hiện đại và phim test lịch sử (ΔE, sai số tại biên, độ lệch màu theo vùng):
+
+```powershell
+python scripts/evaluate/compare_checkpoints.py --set modern-test --set vicow-test `
+  V12=checkpoints/runs/vietcolornet_v12_384/epoch_06.pth `
+  V15=checkpoints/runs/vietcolornet_v15_vicow/epoch_03.pth
+```
+
+Khi train GPU 6 GB ở 384 px, đóng demo và các ứng dụng dùng GPU khác. `best.pth` của run V15 chính là bản khởi tạo (V12 epoch 6) vì không epoch nào vượt mốc validation; dùng `epoch_03.pth`.
 
 ### Chọn và đánh giá mô hình
 
 Chỉ đưa các run hoàn chỉnh vào bước chọn:
 
 ```powershell
-python select_model.py runs/ddcolor_tiny runs/resnet18 runs/resnet34
+python select_model.py checkpoints/runs/ddcolor_tiny checkpoints/runs/resnet18 checkpoints/runs/resnet34
 ```
 
 Đánh giá checkpoint đã chọn:
 
 ```powershell
 python evaluate.py `
-  --selection reports/model_selection.json `
-  --output reports/final_evaluation
+  --selection outputs/reports/model_selection.json `
+  --output outputs/reports/final_evaluation
 ```
 
 Hệ thống xuất JSON/CSV, thống kê từng ảnh, ảnh so sánh và các metric PSNR, SSIM, Delta E 2000, AB-MAE, chroma và LPIPS. Khi so sánh model, phải dùng cùng protocol, cùng thứ tự ảnh và cùng code metric.
@@ -292,25 +337,78 @@ V6 refined cải thiện rõ Delta E, AB-MAE, lỗi màu ở biên và LPIPS so 
 
 V7 không vượt V6 refined. V7.1 xác nhận DINOv2 bridge có thể thay đổi phân bố chroma, nhưng các learned checkpoint đều làm xấu ít nhất một nhóm metric chất lượng hoặc vẫn không đạt cổng phân bố. Vì vậy V7/V7.1 không được phát hành.
 
-## Đóng gói Windows
+### VietColorNet V8 (ImageNet-100K replay + dữ liệu Việt Nam)
 
-Build ứng dụng từ thư mục `ImageNet`:
+V8 dùng lại kiến trúc V7 (`vietcolornet_v8` ánh xạ tới `VietColorNetV7`); điểm mới nằm ở công thức huấn luyện: khởi tạo từ V6 refined, trộn 100.000 ảnh ImageNet replay với nguồn Việt Nam và hai bộ craw (Viet-Cultural-VQA, KTVIC), 20 epoch × 8.000 mẫu, BF16. Config: `configs/vietcolornet_v8_imagenet100k_vietnam.json`.
 
-```powershell
-.\build_windows_app.ps1
-```
+Kết quả trên cùng 100 ảnh lịch sử:
 
-Build sạch:
+| Model | PSNR ↑ | SSIM ↑ | Delta E ↓ | AB-MAE ↓ | Edge AB-MAE ↓ | LPIPS ↓ | <80% chroma | >125% chroma |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| VietColorNet V6 refined | 27,2488 | 0,96413 | 8,0965 | 6,0719 | 6,6808 | 0,11873 | 34 | 24 |
+| **V8 epoch 1** | **27,4224** | **0,96479** | **8,0367** | **6,0255** | **6,5969** | **0,11794** | 37 | 28 |
+| V8 epoch 20 (`latest.pth`) | 26,8392 | 0,96360 | 8,2489 | 6,2505 | 6,9590 | 0,12037 | 38 | 28 |
 
-```powershell
-.\build_windows_app.ps1 -Clean
-```
+- Trên validation, không epoch nào vượt điểm source-balanced của baseline V6 (0,9904; tốt nhất là epoch 1 với 1,0618), nên `best.pth` của run này chính là V6 refined.
+- Epoch 1 nhỉnh hơn V6 refined trên mọi metric chất lượng trong audit, nhưng mức chênh nhỏ, và tập 100 ảnh này đã được dùng trong các quyết định trước nên chỉ là development set.
+- Từ epoch 1 đến epoch 20, mô hình xấu dần; video lịch sử bị tô quá màu (chroma ratio ≈ 1,4–1,8 so với 1,31 của baseline).
+- V8 vẫn không đạt cổng phân bố chroma (37/100 ảnh dưới 80%, 28/100 ảnh trên 125%).
+- V8 epoch 1 được giữ làm phương án dự phòng sau V9.
 
-Kết quả được tạo trong `ImageNet/release/SacViet`. Model và cấu hình được đặt cạnh `SacViet.exe`, cho phép cập nhật checkpoint mà không build lại mã nguồn.
+### VietColorNet V9 (màu hiện đại)
 
-Khi thay checkpoint DDColor:
+Đánh giá V8 cho thấy nguyên nhân màu "cổ", ám olive/sepia nằm ở dữ liệu: các nguồn phim/ảnh lịch sử mang ám màu (vietnam_video a = −4,3; historical_video a = +8,8, b = −10,2; historical still chroma chỉ 9), và checkpoint được chọn bằng validation gồm toàn các nguồn nhợt màu này (chroma 5–13). V9 thay đổi dữ liệu, không đổi kiến trúc (vẫn V7):
 
-1. Đóng ứng dụng.
+- Protocol `vietnam_modern_v9` (`scripts/prepare/prepare_v9_modern_protocol.py`): train 23.473 ảnh màu hiện đại (Viet-Cultural-VQA, KTVIC, Wikimedia Commons); validation 800 ảnh và test 757 ảnh từ split val/test chính thức của VQA và KTVIC; loại trùng chính xác và gần trùng (dHash) giữa train và tập đánh giá.
+- Augmentation suy giảm chất lượng trên kênh L đầu vào (phai tương phản, mờ, hạ phân giải, nhiễu, JPEG), giữ ab đích sạch, để mô hình quen với ảnh scan cũ (`input_degradation` trong `configs/vietcolornet_v9_modern.json`).
+- Khởi tạo từ V8 epoch 1; dừng sớm sau 4 epoch. Chọn epoch 3 vì chroma ratio validation tốt nhất (0,927 so với 0,852 của epoch 1) khi điểm chọn tổng hợp chỉ chênh 0,003.
+
+Tập test hiện đại 757 ảnh (màu thô của mô hình, ảnh resize tối đa 512 px):
+
+| Model | Delta E 2000 ↓ | Chroma ratio (trung vị) | Ảnh < 80% chroma |
+|---|---:|---:|---:|
+| VietColorNet V6 refined | 12,661 | 0,605 | 520 |
+| VietColorNet V8 epoch 1 | 12,564 | 0,641 | 493 |
+| VietColorNet V9 epoch 1 | 13,114 | 0,856 | 343 |
+| **VietColorNet V9 epoch 3** | 13,095 | **0,945** | **286** |
+
+V9 khắc phục hiện tượng tô nhạt (chroma ratio từ 0,64 lên 0,95), đổi lại Delta E tăng khoảng 0,5 vì metric này phạt việc dự đoán màu đậm khi có nhiều đáp án hợp lý. Trên ảnh lịch sử thực tế, trời, cây, da người và vùng trắng có màu tự nhiên hơn; quân phục và xe quân sự vẫn thường bị tô nâu thay vì xanh olive vì dữ liệu hiện đại gần như không có các đối tượng này.
+
+Hậu xử lý chống lem (`refine_ab`): màu dự đoán ở 256 px bị nhòe thành một dải quanh mọi biên khi phóng lên độ phân giải gốc. Pixel trong dải đó bị coi là không tin cậy; mỗi superpixel SLIC lấy màu từ pixel tin cậy của chính nó, superpixel sát biên chỉ mượn màu từ superpixel lân cận có độ sáng tương tự. Trên ảnh test hiện đại, bước này giảm Delta E (12,509 → 12,418). Giới hạn: hai vùng có độ sáng gần như nhau thì ảnh xám không đủ thông tin để tách.
+
+### VietColorNet V10 → V15 (màu tự nhiên, bớt ám vàng nâu)
+
+Các phiên bản sau V9 đều khởi tạo từ phiên bản trước, giữ kiến trúc V7 (trừ V14) và cùng validation/test hiện đại của V9 để so sánh trực tiếp. Mọi số liệu "test" dưới đây là số đo sau khi đã chọn epoch bằng validation.
+
+| Bản | Thay đổi | Kết quả chính | Quyết định |
+|---|---|---|---|
+| V10 | Thêm 36.797 ảnh ImageNet màu của 32 lớp quân sự/cảnh Việt Nam (replay) | Trên ImageNet validation: ΔE ảnh quân sự 12,64 → 10,48, cảnh Việt Nam 13,10 → 10,35; độ tươi ảnh quân sự 1,74 → 1,07 (V9 tô quá đậm) | Dùng |
+| V11 | Thêm 220 ảnh quân đội Việt Nam | ΔE trên 165 ảnh quân đội chưa thấy 11,14 → 10,60 (−5%) nhưng điểm validation hiện đại kém hơn (0,870 so với 0,849); màu quân phục không đổi | Không dùng |
+| V12 | 384 px (thay 256) + 667 ảnh quân đội; chọn epoch 6 | Sai số màu tại biên 12,72 → 12,51; sửa lỗi tóc bạc nhuốm màu trời; epoch 6 tươi hơn epoch 3 (chroma 0,909 so với 0,866) | Dùng |
+| V13 | 512 px + cân bằng màu hiếm (Zhang et al., 2016) trong loss hồi quy | Không cải thiện: ΔE 12,89 so với 12,65 của V12, độ lệch màu gần như không đổi | Không dùng |
+| V14 | Đầu ra phân loại 259 ô màu thay cho hồi quy | Cờ đỏ ra đúng màu, bớt ám vàng vùng trung tính, nhưng quân phục thành đỏ cam và ΔE kém (12,92); tăng nhiệt độ giải mã không sửa được | Không dùng |
+| **V15** | V12 + 1.235 khung hình ViCoW đã hiệu chỉnh (chia theo phim), epoch 3 | Xem bảng dưới | **Mặc định** |
+
+**Nguyên nhân ám vàng nâu.** So màu mô hình tô với màu thật trên 267 ảnh validation hiện đại cho V12: cây xanh lá (thật a = −14,0; b = +14,8) bị tô (a = +2,5; b = +16,6), vùng trung tính (thật b = +0,2) bị ám b = +8,4, trời xanh (thật b = −19,7) bị tô b = +12,2. Mô hình hồi quy dự đoán màu trung bình của các khả năng, và trung bình của xanh lá với đỏ là vàng nâu. Cân bằng màu hiếm (V13) chỉ dịch được rất ít; đầu ra phân loại (V14) làm mô hình chọn màu dứt khoát nhưng chọn sai màu quân phục. Khoảng cách này chưa được đóng, xem mục Giới hạn.
+
+Kết quả V15 trên tập test (ảnh resize tối đa 640 px, màu thô của mô hình, mỗi hai ảnh lấy một; `scripts/evaluate/compare_checkpoints.py`, báo cáo `outputs/reports/v15_comparison.json`):
+
+| Tập | Model | ΔE 2000 ↓ | Edge AB-MAE ↓ | Chroma ratio | Cây xanh (a, b) tô → thật | Vùng trung tính b tô (thật) |
+|---|---|---:|---:|---:|---|---|
+| Ảnh hiện đại (379) | V12 epoch 6 | 12,511 | 12,717 | 0,876 | (+2,2; +17,4) → (−14,0; +19,0) | +8,2 (+0,3) |
+| | **V15 epoch 3** | **12,113** | **12,410** | 0,723 | (+1,4; +14,1) → (−14,0; +19,0) | **+6,4** (+0,3) |
+| Phim *Hà Nội 12 ngày đêm* (218) | V12 epoch 6 | 10,961 | 10,130 | 1,644 | (+1,3; +19,6) → (−9,4; +9,8) | +9,7 (−0,1) |
+| | **V15 epoch 3** | **9,571** | **7,669** | 1,178 | (−1,2; +13,6) → (−9,4; +9,8) | **+5,8** (−0,1) |
+
+V15 giảm sai số màu tại biên trên phim lịch sử 24% (nơi màu hay lem), giảm ΔE trên cả hai tập và bớt ám vàng, đổi lại tô nhạt hơn V12 trên ảnh hiện đại (0,72 so với 0,88); bước "tăng độ tươi" của chế độ Hiện đại bù lại một phần. Chọn epoch 3 dựa trên validation (loss phim lịch sử thấp nhất, điểm hiện đại ngang epoch 1); số test chỉ dùng để báo cáo. Train dừng sớm sau epoch 3 vì điểm validation hiện đại không vượt được mốc của V12.
+
+**Chống lem màu.** Pipeline suy luận (`colorization/enhance.py`, `colorization/segmentation.py`): (1) phục hồi kênh L (khử nhiễu theo mức đo được, kéo dải sáng giữ chi tiết vùng tối, làm nét); (2) dự đoán ab ở 256/384 px; (3) `refine_ab`: pixel gần biên được coi là không tin cậy vì màu bị nhòe khi phóng ảnh, mỗi superpixel lấy màu từ lõi của chính nó và chỉ mượn màu từ superpixel lân cận cùng độ sáng; (4) Segment Anything tách vật thể để màu không được mượn qua ranh giới vật thể, kể cả khi hai vùng có độ sáng giống nhau (tóc bạc cạnh trời); (5) `modernize_ab`: khử ám màu chỉ trên vùng gần trung tính, không đẩy pixel xám sang màu đối diện, và tăng độ tươi theo kiểu vibrance. Trên 134 ảnh validation hiện đại, `refine_ab` giảm ΔE (13,34 → 13,17) và sai số tại biên (12,85 → 12,69); SAM giữ độ tươi tốt hơn (0,955 so với 0,909) nhưng không giảm thêm các số đo này vì ảnh hiện đại hiếm khi có hai vật cùng độ sáng sát nhau. Lợi ích của SAM thấy rõ ở ảnh lịch sử (mặt người không nhuốm màu tường, tóc bạc không nhuốm màu trời) và chưa có số đo khách quan trên bộ ảnh lịch sử có đáp án màu.
+
+## Thay checkpoint vận hành
+
+Hệ thống chạy dưới dạng ứng dụng web (Gradio) bằng `demo.py`; không còn bản cài đặt Windows. Khi thay checkpoint DDColor:
+
+1. Dừng `demo.py`.
 2. Sao chép checkpoint mới bằng tên tạm.
 3. Kiểm tra file và SHA-256.
 4. Đổi tên thành `best.pth`.
@@ -319,29 +417,56 @@ Khi thay checkpoint DDColor:
 
 ## Cấu trúc dự án
 
+Mọi lệnh trong README chạy từ thư mục gốc `KHOA_LUAN/`.
+
 ```text
 KHOA_LUAN/
-├── .gitignore
 ├── README.md
-└── ImageNet/
-    ├── colorization/          # model, dataset, inference, metric, temporal runtime
-    ├── configs/               # cấu hình DDColor, VietColorNet và ablation
-    ├── data/                  # raw data, protocol và manifest
-    ├── examples/              # ảnh mẫu cho giao diện
-    ├── pretrained/            # checkpoint pretrained
-    ├── reports/               # selection, audit và kết quả đánh giá
-    ├── runs/                  # checkpoint và lịch sử huấn luyện
-    ├── tests/                 # unit tests
-    ├── third_party/DDColor/   # mã nguồn DDColor upstream
-    ├── demo.py                # ứng dụng Gradio Sắc Việt
-    ├── train.py               # huấn luyện ImageNet/baseline
-    ├── fine_tune_vietnam.py   # domain adaptation và distillation
-    ├── evaluate.py            # đánh giá ImageNet/Việt Nam
-    ├── verify_product.py      # kiểm tra selection, checksum và runtime
-    └── requirements.txt
+├── requirements.txt
+├── start_demo.bat                 # bấm đúp để mở ứng dụng web
+│
+├── demo.py                        # ỨNG DỤNG WEB (Gradio)
+├── train.py                       # HUẤN LUYỆN: baseline ImageNet
+├── fine_tune_vietnam.py           # HUẤN LUYỆN: VietColorNet trên dữ liệu Việt Nam
+├── evaluate.py                    # ĐÁNH GIÁ: ImageNet / Việt Nam
+├── evaluate_image_failures.py     # ĐÁNH GIÁ: audit 100 ảnh lịch sử, worst cases
+├── select_model.py                # tiện ích: chọn checkpoint từ các run hoàn chỉnh
+├── verify_product.py              # tiện ích: kiểm tra selection, checksum, runtime
+├── doctor.py                      # tiện ích: kiểm tra môi trường và dữ liệu ImageNet
+│
+├── colorization/                  # LÕI: mô hình, dữ liệu, suy luận, chống lem, SAM, metric
+├── configs/                       # cấu hình từng phiên bản (DDColor, VietColorNet V5 … V14)
+├── scripts/
+│   ├── prepare/                   # thu thập dữ liệu, dựng protocol, tải trọng số
+│   ├── evaluate/                  # đánh giá theo từng vòng nghiên cứu
+│   └── legacy/                    # pipeline V5/V7/V7.1, resume V8, sinh báo cáo docx
+├── tests/                         # unit tests
+├── third_party/DDColor/           # mã nguồn DDColor upstream
+├── examples/                      # ảnh mẫu cho giao diện
+├── docs/                          # báo cáo .docx, tài liệu .md, giấy phép bên thứ ba
+│
+├── data/                          # TOÀN BỘ DỮ LIỆU (không lưu trên Git)
+│   ├── sources/                   # dữ liệu gốc, mỗi nguồn một thư mục (xem data/sources/README.md)
+│   │   ├── vicow/                 #   4 phim tư liệu lịch sử (ViCoW)
+│   │   ├── historical_vietnam_images/   # ảnh lịch sử cho audit 100 ảnh
+│   │   ├── viet_cultural_vqa/  ktvic/   # ảnh hiện đại Việt Nam
+│   │   ├── wikimedia_vietnam/  wikimedia_vietnam_military/
+│   │   └── imagenet64/            #   ImageNet 64×64 gốc
+│   ├── processed/                 # ImageNet đã xử lý (shards, nhãn, manifest)
+│   └── protocols/                 # chia train/val/test V1 … V12 (CSV + manifest SHA-256)
+│
+├── checkpoints/                   # TOÀN BỘ MÔ HÌNH (không lưu trên Git)
+│   ├── pretrained/                # SAM ViT-B, DDColor gốc
+│   └── runs/                      # các bản đã train: V6 refined … V14, DDColor V6
+│
+├── outputs/                       # KẾT QUẢ SINH RA
+│   ├── reports/                   # số liệu, audit, selection (production_selection.json)
+│   └── demo_outputs/              # ảnh tạo từ ứng dụng web
+│
+└── .venv/                         # môi trường Python
 ```
 
-Các thư mục `.venv/`, `data/`, `runs/`, `pretrained/`, `build/`, `dist/`, `release/`, `demo_outputs/` và checkpoint `*.pth`/`*.pt` được bỏ qua để tránh đưa dữ liệu hoặc artefact lớn vào Git ngoài ý muốn. Repository chỉ giữ `reports/production_selection.json`; các report khác phải được thêm có chủ đích nếu cần công bố.
+`.venv/`, `data/`, `checkpoints/`, `outputs/` và mọi file `*.pth`/`*.pt` được bỏ qua để tránh đưa dữ liệu hoặc artefact lớn vào Git ngoài ý muốn. Repository chỉ giữ `outputs/reports/production_selection.json` và `data/sources/README.md`; các report khác phải được thêm có chủ đích nếu cần công bố.
 
 ## Giới hạn
 
@@ -349,6 +474,9 @@ Các thư mục `.venv/`, `data/`, `runs/`, `pretrained/`, `build/`, `dist/`, `r
 - ImageNet dùng trong protocol là bản 64×64 rồi nội suy lên kích thước huấn luyện; nội suy không tạo thêm chi tiết thật.
 - Checkpoint DDColor chính thức đã học ImageNet. Fine-tune từ checkpoint này là transfer learning, không phải huấn luyện từ đầu.
 - Tập dữ liệu đã tham gia lựa chọn kiến trúc/hyperparameter chỉ là development set; kết luận cuối cần nguồn độc lập chưa từng dùng trong thiết kế.
+- **Màu vẫn lệch vàng nâu:** cây cỏ bị tô gần như không xanh (a ≈ 0 thay vì −14), trời xanh bị tô nhạt, quân phục và cờ đỏ đôi khi sai màu vì đỏ, xanh đậm và nâu có cùng độ sáng trên ảnh xám. Các thử nghiệm V13 và V14 chưa đóng được khoảng cách này; cần thêm dữ liệu có nhãn ngữ nghĩa hoặc điều kiện hóa màu bằng ngữ cảnh.
+- Màu "chuẩn" của ViCoW là màu phim cũ; điểm số trên phim này đo độ giống phim, không đo độ đẹp hay tự nhiên. Chưa có tập ảnh lịch sử có đáp án màu hiện đại độc lập; `Hà Nội 12 ngày đêm` là development test từ V1 đến V8 nhưng chưa từng được dùng để train hay chọn mô hình từ V9.
+- Ảnh ImageNet chỉ 64×64 rồi phóng lên 384 px nên là nguồn mờ nhất trong dữ liệu train; augmentation suy giảm chất lượng giúp mô hình quen với ảnh mờ nhưng không tạo thêm chi tiết.
 - Ảnh hư hỏng nặng, mất mảng hoặc trầy xước lớn cần thêm bước restoration/inpainting.
 - Video dài trên GPU laptop cần nhiều thời gian và bộ nhớ; tính năng video trong demo mặc định bị tắt.
 - Kết quả định lượng chỉ có ý nghĩa khi protocol, checkpoint, checksum và mã đánh giá được cố định.
@@ -359,7 +487,15 @@ DDColor:
 
 - Repository: <https://github.com/piddnad/DDColor>
 - Commit tích hợp: `2adb63f2656ac41cbdf7b894cddd94121a3faf13`
-- Giấy phép: Apache License 2.0; file `LICENSE` gốc được giữ trong `ImageNet/third_party/DDColor/`.
+- Giấy phép: Apache License 2.0; file `LICENSE` gốc được giữ trong `third_party/DDColor/`.
 - Bài báo: Xia, Z., Shen, X., Huang, J., Chen, J., & Ji, R. (2023), “DDColor: Towards Photo-Realistic and Consistent Image Colorization with Dual Decoders”, ICCV 2023.
+
+Segment Anything (SAM ViT-B):
+
+- Repository: <https://github.com/facebookresearch/segment-anything>; giấy phép Apache License 2.0.
+- Chỉ dùng để tách ranh giới vật thể khi suy luận; không đóng góp vào dự đoán màu. Tải trọng số bằng `scripts/prepare/download_sam.py` (kiểm tra SHA-256).
+- Bài báo: Kirillov, A. et al. (2023), “Segment Anything”, ICCV 2023.
+
+DINOv2 (Oquab et al., 2023, Apache-2.0) và ResNet-34 (He et al., 2016; trọng số torchvision) được dùng làm backbone trích đặc trưng cho VietColorNet.
 
 Các dependency khác giữ nguyên giấy phép tương ứng của từng dự án. Thư mục demo vendored của DDColor thuộc upstream và không được ứng dụng Sắc Việt gọi trực tiếp.

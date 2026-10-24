@@ -1,0 +1,18 @@
+{
+  "model": "ddcolor",
+  "encoder_name": "convnext-l",
+  "image_size": 256,
+  "nf": 512,
+  "num_queries": 100,
+  "decoder_layers": 9,
+  "initial_checkpoint": "checkpoints/pretrained/ddcolor_paper.pth",
+  "epochs": 5,
+  "batch_size": 1,
+  "gradient_accumulation_steps": 8,
+  "learning_rate": 0.00001,
+  "weight_decay": 0.01,
+  "num_workers": 1,
+  "seed": 2026,
+  "early_stopping_patience": 3,
+  "freeze_encoder_epochs": 5
+}
