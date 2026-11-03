@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Khảo sát tô màu ảnh</title>
+<style>
+  :root { --bg:#faf7f2; --fg:#231f1a; --muted:#6d655a; --card:#fff; --line:#e3dccf; --accent:#8c2f1d; --accent-fg:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#171411; --fg:#efe9df; --muted:#a79f92; --card:#221e19; --line:#3a342c; --accent:#d97757; --accent-fg:#1a1410; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, "Segoe UI", sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:1.5rem; margin:0 0 8px; }
+  p { margin:0 0 12px; }
+  .muted { color:var(--muted); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0; }
+  button { font:inherit; border:1px solid var(--line); background:var(--card); color:var(--fg); border-radius:8px; padding:10px 16px; cursor:pointer; }
+  button.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .progress { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin:8px 0 16px; }
+  .progress > i { display:block; height:100%; background:var(--accent); width:0; }
+  .grey img { display:block; max-width:100%; max-height:42vh; margin:0 auto; border-radius:8px; }
+  .options { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+  @media (max-width:640px) { .options { grid-template-columns:1fr; } }
+  .opt img { width:100%; border-radius:8px; display:block; cursor:zoom-in; }
+  .opt h3 { margin:8px 0 0; font-size:1rem; text-align:center; }
+  fieldset { border:0; padding:0; margin:12px 0 0; }
+  legend { font-weight:600; margin-bottom:6px; }
+  .choices { display:flex; gap:8px; flex-wrap:wrap; }
+  .choices label { border:1px solid var(--line); border-radius:8px; padding:8px 16px; cursor:pointer; }
+  .choices input { margin-right:6px; }
+  .choices label:has(input:checked) { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+  [hidden] { display:none !important; }
+  dialog { border:0; padding:0; background:transparent; max-width:96vw; }
+  dialog img { max-width:96vw; max-height:92vh; border-radius:8px; }
+  dialog::backdrop { background:rgba(0,0,0,.8); }
+</style>
+</head>
+<body>
+<main>
+  <section id="intro" class="card">
+    <h1>Khảo sát tô màu ảnh đen trắng</h1>
+    <p>Bạn sẽ xem <b>20 ảnh đen trắng</b>, mỗi ảnh có <b>3 bản tô màu</b> (A, B, C) do các chương trình khác nhau tạo ra. Với mỗi ảnh bạn trả lời 2 câu hỏi ngắn. Khoảng 8–10 phút.</p>
+    <ul class="muted">
+      <li>Không có đáp án đúng hay sai, chỉ chọn theo cảm nhận của bạn.</li>
+      <li>Thứ tự A/B/C được xáo ngẫu nhiên cho từng ảnh; bạn không biết bản nào của chương trình nào.</li>
+      <li>Bấm vào ảnh để phóng to. Dùng màn hình sáng đủ, không bật chế độ lọc màu.</li>
+      <li>Kết quả chỉ dùng cho nghiên cứu, không thu thập thông tin cá nhân.</li>
+    </ul>
+    <button class="primary" id="start">Bắt đầu</button>
+  </section>
+
+  <section id="trial" hidden>
+    <div class="muted" id="counter"></div>
+    <div class="progress"><i id="bar"></i></div>
+    <div class="card grey"><p class="muted" style="text-align:center">Ảnh gốc (đen trắng)</p><img id="grey" alt="Ảnh gốc đen trắng"></div>
+    <div class="options" id="options"></div>
+    <div class="card">
+      <fieldset><legend>1. Bản nào có màu <b>tự nhiên và đáng tin</b> nhất?</legend><div class="choices" id="q1"></div></fieldset>
+      <fieldset><legend>2. Bản nào <b>ít bị lem màu</b> qua viền người và vật nhất (ví dụ màu áo tràn sang nền)?</legend><div class="choices" id="q2"></div></fieldset>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:space-between">
+      <button id="back">← Quay lại</button>
+      <button class="primary" id="next" disabled>Tiếp →</button>
+    </div>
+  </section>
+
+  <section id="done" class="card" hidden>
+    <h1>Cảm ơn bạn!</h1>
+    <p>Bấm nút dưới để tải file kết quả, rồi gửi file đó lại cho người thực hiện khảo sát.</p>
+    <button class="primary" id="download">Tải file kết quả</button>
+    <p class="muted" id="saved" style="margin-top:12px"></p>
+  </section>
+</main>
+<dialog id="zoom"><img id="zoomImg" alt=""></dialog>
+<script>
+const TRIALS = __TRIALS__;
+const LABELS = ["A", "B", "C"];
+const pid = "p" + Math.random().toString(36).slice(2, 8);
+const answers = {};
+let index = 0;
+const $ = (id) => document.getElementById(id);
+
+try { Object.assign(answers, JSON.parse(localStorage.getItem("study_answers") || "{}")); } catch (e) {}
+const saveLocal = () => { try { localStorage.setItem("study_answers", JSON.stringify(answers)); } catch (e) {} };
+
+function choiceGroup(container, name, current, onChange) {
+  container.innerHTML = "";
+  for (const l of LABELS) {
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="radio" name="${name}" value="${l}"> Bản ${l}`;
+    const input = label.firstChild;
+    input.checked = current === l;
+    input.addEventListener("change", () => onChange(l));
+    container.appendChild(label);
+  }
+}
+
+function render() {
+  const code = TRIALS[index];
+  const a = answers[code] || {};
+  $("counter").textContent = `Ảnh ${index + 1} / ${TRIALS.length}`;
+  $("bar").style.width = `${(index / TRIALS.length) * 100}%`;
+  $("grey").src = `images/${code}_grey.jpg`;
+  $("options").innerHTML = LABELS.map((l) =>
+    `<div class="opt"><img src="images/${code}_${l}.jpg" alt="Bản ${l}" data-src="images/${code}_${l}.jpg"><h3>Bản ${l}</h3></div>`).join("");
+  document.querySelectorAll(".opt img").forEach((img) => img.addEventListener("click", () => {
+    $("zoomImg").src = img.dataset.src; $("zoom").showModal();
+  }));
+  const update = () => { $("next").disabled = !(answers[code] && answers[code].natural && answers[code].bleed); };
+  choiceGroup($("q1"), "q1", a.natural, (v) => { answers[code] = { ...answers[code], natural: v }; saveLocal(); update(); });
+  choiceGroup($("q2"), "q2", a.bleed, (v) => { answers[code] = { ...answers[code], bleed: v }; saveLocal(); update(); });
+  $("back").disabled = index === 0;
+  $("next").textContent = index === TRIALS.length - 1 ? "Hoàn thành" : "Tiếp →";
+  update();
+  window.scrollTo(0, 0);
+}
+
+$("zoom").addEventListener("click", () => $("zoom").close());
+$("start").addEventListener("click", () => { $("intro").hidden = true; $("trial").hidden = false; render(); });
+$("back").addEventListener("click", () => { if (index > 0) { index--; render(); } });
+$("next").addEventListener("click", () => {
+  if (index < TRIALS.length - 1) { index++; render(); return; }
+  $("trial").hidden = true; $("done").hidden = false;
+});
+$("download").addEventListener("click", () => {
+  const payload = { participant: pid, finished: new Date().toISOString(), answers };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `khaosat_${pid}.json`;
+  link.click();
+  $("saved").textContent = `Đã tải file khaosat_${pid}.json. Nếu không thấy file, kiểm tra thư mục Tải xuống.`;
+});
+</script>
+</body>
+</html>

@@ -319,6 +319,9 @@ Hệ thống xuất JSON/CSV, thống kê từng ảnh, ảnh so sánh và các 
 
 ## Kết quả nghiên cứu đã kiểm chứng
 
+> **Đối chiếu tên mô hình.** Các mục "Kết quả nghiên cứu đã kiểm chứng" bên dưới là nhật ký nghiên cứu theo thời gian, dùng tên phiên bản lúc đó và giữ nguyên để tái lập. Hệ thống hiện chỉ dùng hai VietColorNet: **"Lịch sử" = V15 epoch 3** và **"Tươi" = V12 epoch 6**, cùng baseline **DDColor gốc**. Các checkpoint V5–V14, V6 refined và DDColor V6 không còn trong menu. Số liệu dùng cho bài báo là mục "Đánh giá thống kê và độ ổn định".
+
+
 Các số dưới đây lấy từ audit trực tiếp trên cùng 100 ảnh lịch sử, có LPIPS. Mũi tên thể hiện hướng tốt hơn.
 
 | Model | PSNR ↑ | SSIM ↑ | Delta E ↓ | AB-MAE ↓ | Edge AB-MAE ↓ | LPIPS ↓ | Chroma ratio |
