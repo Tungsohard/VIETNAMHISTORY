@@ -36,3 +36,20 @@
 Thumbs.db
 .idea/
 .vscode/
+
+# Deployment bundles.
+/build/
+
+!/outputs/reports/baseline_selection.json
+/extracted_content/
+# Statistical reports cited in the README
+!/outputs/reports/seed_variance.json
+!/outputs/reports/seed_variance.md
+!/outputs/reports/pipeline_raw.json
+!/outputs/reports/pipeline_raw.md
+!/outputs/reports/pipeline_refined.json
+!/outputs/reports/pipeline_refined.md
+!/outputs/reports/pipeline_refined_sam.json
+!/outputs/reports/pipeline_refined_sam.md
+!/outputs/reports/statistical_comparison_official.json
+!/outputs/reports/statistical_comparison_official.md

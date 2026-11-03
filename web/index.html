@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sắc Việt · Tô màu ảnh tư liệu Việt Nam</title>
+<meta name="description" content="Sắc Việt phục dựng màu cho ảnh tư liệu lịch sử Việt Nam bằng VietColorNet, mô hình tô màu tự thiết kế.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script>
+  try { var t = localStorage.getItem("sacviet-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="drum" viewBox="0 0 200 200">
+      <g fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="100" cy="100" r="96"/>
+        <circle cx="100" cy="100" r="88" stroke-dasharray="2 5"/>
+        <circle cx="100" cy="100" r="76"/>
+        <circle cx="100" cy="100" r="66" stroke-dasharray="9 4"/>
+        <circle cx="100" cy="100" r="50"/>
+        <circle cx="100" cy="100" r="40" stroke-dasharray="1 4"/>
+        <circle cx="100" cy="100" r="26"/>
+        <path d="M100 4 L106 40 L100 30 L94 40 Z M100 196 L106 160 L100 170 L94 160 Z M4 100 L40 94 L30 100 L40 106 Z M196 100 L160 94 L170 100 L160 106 Z
+                 M32 32 L58 52 L46 50 L50 62 Z M168 32 L148 58 L150 46 L138 50 Z M32 168 L52 142 L50 154 L62 150 Z M168 168 L142 148 L154 150 L150 138 Z"/>
+      </g>
+      <g fill="currentColor"><circle cx="100" cy="100" r="7"/></g>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="Sắc Việt, về đầu trang">
+    <svg class="brand-mark" aria-hidden="true"><use href="#drum"/></svg>
+    <span>Sắc <em>Việt</em></span>
+  </a>
+  <nav class="nav" aria-label="Điều hướng chính">
+    <a href="#studio">Tô màu</a>
+    <a href="#gallery">Ảnh mẫu</a>
+    <a href="#how">Cách hoạt động</a>
+    <a href="#results">Kết quả</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="chip" id="status-chip" title="Trạng thái hệ thống"><i class="dot"></i><span id="status-text">Đang kết nối…</span></span>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <svg class="hero-drum" aria-hidden="true"><use href="#drum"/></svg>
+    <div class="hero-copy">
+      <p class="eyebrow">Phục dựng màu · Tư liệu lịch sử Việt Nam</p>
+      <h1>Trả lại <em>sắc màu</em><br>cho ký ức.</h1>
+      <p class="lead">Sắc Việt dùng <strong>VietColorNet</strong>, mô hình tô màu do chúng tôi tự thiết kế, để tái hiện màu cho ảnh đen trắng của Việt Nam: phố phường, con người, những ngày đã đi vào lịch sử.</p>
+      <div class="cta">
+        <a class="btn primary" href="#studio">Thử với ảnh của bạn</a>
+        <a class="btn ghost" href="#gallery">Xem ảnh mẫu</a>
+      </div>
+      <p class="fineprint">Ảnh được xử lý ngay trên máy chủ này và xóa sau một giờ. Màu là bản dự đoán hợp lý, không phải màu lịch sử xác thực.</p>
+    </div>
+    <figure class="hero-demo">
+      <div class="compare" id="hero-compare" data-label="Ảnh mẫu: xám và màu">
+        <img class="cmp-base" alt="" id="hero-color">
+        <div class="cmp-top"><img alt="Ảnh tư liệu đen trắng" id="hero-gray"></div>
+        <span class="cmp-tag left">Trước</span><span class="cmp-tag right">Sau</span>
+        <div class="cmp-handle"><i></i></div>
+        <input class="cmp-range" type="range" min="0" max="100" value="50" aria-label="Kéo để so sánh ảnh xám và ảnh đã tô màu">
+        <div class="cmp-loading" id="hero-loading">Đang tô màu ảnh mẫu…</div>
+      </div>
+      <figcaption id="hero-caption"></figcaption>
+    </figure>
+  </section>
+
+  <!-- STUDIO -->
+  <section class="section" id="studio">
+    <div class="section-head">
+      <p class="eyebrow">Bắt đầu</p>
+      <h2>Tô màu ảnh của bạn</h2>
+      <p>Tải ảnh lên, chọn phong cách màu, rồi kéo thanh trượt để so sánh trước và sau.</p>
+    </div>
+
+    <div class="studio">
+      <div class="panel" id="panel-input">
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Chọn hoặc kéo thả ảnh">
+          <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+          <svg class="drop-mark" aria-hidden="true"><use href="#drum"/></svg>
+          <div class="drop-text">
+            <strong>Kéo thả ảnh vào đây</strong>
+            <span>hoặc bấm để chọn · JPG, PNG, WebP · tối đa <b id="max-mb">15</b> MB</span>
+          </div>
+          <img id="preview" alt="Ảnh đã chọn" hidden>
+        </div>
+
+        <fieldset class="modes">
+          <legend>Phong cách màu</legend>
+          <label class="mode"><input type="radio" name="mode" value="natural">
+            <span class="mode-card"><b>Tự nhiên</b><small>Màu gốc của mô hình, chỉ chống lem biên.</small></span></label>
+          <label class="mode"><input type="radio" name="mode" value="modern" checked>
+            <span class="mode-card"><b>Hiện đại</b><small>Phục hồi ảnh, màu tươi vừa phải, không ám vàng.</small></span></label>
+          <label class="mode"><input type="radio" name="mode" value="vivid">
+            <span class="mode-card"><b>Rực rỡ</b><small>Như Hiện đại nhưng màu đậm hơn.</small></span></label>
+        </fieldset>
+
+        <details class="advanced">
+          <summary>Tùy chỉnh nâng cao</summary>
+          <div class="adv-grid">
+            <label>Cường độ màu <output id="strength-out">1.00×</output>
+              <input type="range" id="strength" min="0.5" max="1.5" step="0.05" value="1"></label>
+            <label>Mô hình
+              <select id="model"></select></label>
+          </div>
+        </details>
+
+        <button class="btn primary big" id="run" type="button" disabled>Tô màu ngay</button>
+        <p class="hint" id="hint" role="status" aria-live="polite">Chọn một ảnh để bắt đầu.</p>
+      </div>
+
+      <div class="panel result" id="panel-result" aria-live="polite">
+        <div class="empty" id="empty">
+          <svg aria-hidden="true"><use href="#drum"/></svg>
+          <p>Kết quả sẽ hiện ở đây.</p>
+        </div>
+        <div class="busy" id="busy" hidden>
+          <div class="bar"><i></i></div>
+          <p><b id="busy-text">Đang tô màu…</b> <span id="busy-time">0s</span></p>
+          <small>Khôi phục độ sáng, dự đoán màu rồi chống lem theo ranh giới vật thể.</small>
+        </div>
+        <div class="out" id="out" hidden>
+          <div class="compare" id="result-compare">
+            <img class="cmp-base" alt="Ảnh đã tô màu" id="res-color">
+            <div class="cmp-top"><img alt="Ảnh gốc đen trắng" id="res-gray"></div>
+            <span class="cmp-tag left">Trước</span><span class="cmp-tag right">Sau</span>
+            <div class="cmp-handle"><i></i></div>
+            <input class="cmp-range" type="range" min="0" max="100" value="50" aria-label="Kéo để so sánh ảnh gốc và ảnh đã tô màu">
+          </div>
+          <p class="meta" id="meta"></p>
+          <div class="actions">
+            <a class="btn primary" id="dl-color" download="sac-viet.png">Tải ảnh màu</a>
+            <button class="btn ghost" id="dl-compare" type="button">Tải ảnh so sánh</button>
+            <button class="btn ghost" id="zoom" type="button">Phóng to</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="section alt" id="gallery">
+    <div class="section-head">
+      <p class="eyebrow">Ảnh mẫu</p>
+      <h2>Thử ngay với tư liệu có sẵn</h2>
+      <p>Bấm vào một ảnh để đưa vào khu tô màu.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <!-- HOW -->
+  <section class="section" id="how">
+    <div class="section-head">
+      <p class="eyebrow">Cách hoạt động</p>
+      <h2>Từ ảnh xám đến ảnh màu</h2>
+    </div>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Khôi phục độ sáng</h3><p>Làm sạch nhiễu, giảm mờ và cân lại độ tương phản để ảnh cũ dễ đọc hơn trước khi tô.</p></li>
+      <li><span class="n">2</span><h3>Dự đoán màu</h3><p>VietColorNet (ResNet-34, DINOv2 hiểu ngữ nghĩa, nhánh biên và bảng màu chú ý) dự đoán hai kênh màu a, b trong không gian CIE Lab từ độ sáng L.</p></li>
+      <li><span class="n">3</span><h3>Chống lem màu</h3><p>SAM tách ranh giới người, vật và bầu trời; màu chỉ được lan trong cùng một vùng, nên áo không nhuộm sang nền.</p></li>
+      <li><span class="n">4</span><h3>Tinh chỉnh</h3><p>Loại ám vàng nâu ở vùng gần trung tính và tăng nhẹ độ tươi, tùy phong cách bạn chọn.</p></li>
+    </ol>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="section alt" id="results">
+    <div class="section-head">
+      <p class="eyebrow">Kết quả & giới hạn</p>
+      <h2>Đo được gì, chưa làm được gì</h2>
+      <p>Mô hình “Lịch sử” được huấn luyện thêm trên phim tư liệu ViCoW và kiểm tra trên một phim chưa từng thấy. Số liệu là trung bình của 3 lần huấn luyện (kèm độ lệch chuẩn), so với DDColor gốc, một mô hình tô màu công bố sẵn.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>−31%</b><span>Sai số màu tại biên (nơi màu hay lem) trên phim tư liệu chưa thấy: 12,1 → 8,3 (± 0,6)</span></div>
+      <div class="stat"><b>10,2</b><span>ΔE2000 trên phim tư liệu kiểm tra (± 0,6), thấp hơn 11,4 của DDColor gốc</span></div>
+      <div class="stat"><b>12,4</b><span>ΔE2000 trên ảnh hiện đại (± 0,3): <b>kém</b> DDColor gốc một chút (11,8)</span></div>
+      <div class="stat"><b>62.172</b><span>Ảnh huấn luyện, gồm 1.235 khung hình phim tư liệu</span></div>
+    </div>
+    <div class="limits">
+      <h3>Giới hạn đã biết</h3>
+      <ul>
+        <li>Màu là <b>dự đoán hợp lý</b>, không phải màu lịch sử xác thực; ảnh đen trắng không lưu thông tin màu.</li>
+        <li>Cây xanh vẫn đôi khi ngả vàng nâu; màu cờ và quân phục có thể sai vì khó đoán từ ảnh xám.</li>
+        <li>Màu “chuẩn” của phim tư liệu là màu phim cũ, nên điểm trên phim đo độ giống phim, không đo độ đẹp.</li>
+        <li>Lợi thế của VietColorNet nằm ở phim tư liệu và ở biên vật thể; trên ảnh hiện đại, DDColor gốc có sai số màu trung bình thấp hơn một chút.</li>
+        <li>Mô hình “Lịch sử” tô nhạt hơn mô hình “Tươi” một chút. Chọn <b>Rực rỡ</b> hoặc mô hình “Tươi” nếu cần màu đậm hơn.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <svg class="foot-drum" aria-hidden="true"><use href="#drum"/></svg>
+  <div>
+    <b>Sắc Việt</b> · Khóa luận tốt nghiệp về phục dựng màu ảnh tư liệu lịch sử Việt Nam.
+    <p>Mô hình VietColorNet là thiết kế riêng. Thành phần có sẵn chỉ dùng làm công cụ hỗ trợ:
+      ResNet-34 và DINOv2 (bộ trích đặc trưng), Segment Anything (tách vùng).
+      Mã nguồn: <a href="https://github.com/Tungsohard/VIETNAMHISTORY" rel="noopener">github.com/Tungsohard/VIETNAMHISTORY</a></p>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" hidden><button class="icon-btn" id="lb-close" aria-label="Đóng">✕</button><img id="lb-img" alt=""></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

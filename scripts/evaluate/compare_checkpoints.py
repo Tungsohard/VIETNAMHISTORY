@@ -13,7 +13,7 @@ worse: read it together with the modern sets.
 
 Usage:
     python scripts/evaluate/compare_checkpoints.py --set modern-test --set vicow-test \
-        V12=checkpoints/runs/vietcolornet_v12_384/epoch_06.pth V15=checkpoints/runs/vietcolornet_v15_vicow/epoch_03.pth
+        vivid=checkpoints/models/vietcolornet_vivid.pth historical=checkpoints/models/vietcolornet_historical.pth
 """
 import argparse
 import csv

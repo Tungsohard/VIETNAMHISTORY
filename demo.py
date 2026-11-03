@@ -1,7 +1,7 @@
 """Sắc Việt: Ứng dụng phục dựng và tô màu ảnh tư liệu lịch sử Việt Nam.
 
 Được phát triển trong khuôn khổ Khóa luận tốt nghiệp với kiến trúc đề xuất VietColorNet
-kết hợp đối chuẩn cùng mô hình DDColor V6 trên dữ liệu tư liệu lịch sử Việt Nam.
+kết hợp đối chuẩn cùng mô hình DDColor gốc.
 """
 import argparse
 import json
@@ -319,132 +319,44 @@ def load_engines(args):
     """Nạp các mô hình khả dụng để phục vụ chế độ đơn và chế độ đối so sánh."""
     engines = {}
 
-    # 1. Nạp DDColor V6 (baseline/đối chứng; checkpoint vận hành đã đóng băng)
+    # 1. Nạp DDColor gốc (baseline thuần, không tinh chỉnh)
     try:
-        engine_v6 = ColorizationEngine.from_selection(args.selection, device=args.device)
+        engine_dd = ColorizationEngine.from_selection(args.selection, device=args.device)
         engines["ddcolor"] = {
-            "engine": engine_v6,
-            "label": "DDColor V6 (Bản ảnh tĩnh · Baseline)",
-            "desc": "Mô hình chuyển giao ConvNeXt-Tiny tinh chỉnh trên video & ảnh Wikimedia",
+            "engine": engine_dd,
+            "label": "DDColor gốc (Baseline thuần)",
+            "desc": "Trọng số DDColor chính thức huấn luyện trên ImageNet, không tinh chỉnh trên dữ liệu Việt Nam",
         }
     except Exception as exc:
-        print(f"Warning: Could not load DDColor V6 selection: {exc}")
+        print(f"Warning: Could not load DDColor baseline: {exc}")
 
-    # 2. Nạp VietColorNet mới làm mô hình mặc định. Giữ V6 như một lựa chọn
-    # độc lập để người dùng có thể quay lại/đối chiếu mà không ghi đè checkpoint.
-    vnet_candidate = None
-    if args.checkpoint and Path(args.checkpoint).is_file():
-        vnet_candidate = Path(args.checkpoint)
-    else:
-        candidates = [
-            # V15: V12 + 1.235 khung hình phim tư liệu ViCoW đã hiệu chỉnh (chia theo phim). Epoch 3 có
-            # loss validation phim lịch sử thấp nhất; trên test, edge AB-MAE phim lịch sử giảm 24% và
-            # ảnh hiện đại giảm ΔE (12,11 so với 12,51), bớt ám vàng nâu, đổi lại màu nhạt hơn một chút.
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v15_vicow" / "epoch_03.pth",
-            # V12: train ở 384 px (vật thể nhỏ như tóc, tay ít bị lẫn màu nền) và thêm 667 ảnh
-            # quân đội Việt Nam. Epoch 6 thay epoch 3: chính xác và chống lem gần như bằng
-            # (edge AB-MAE 12,51 so với 12,45) nhưng màu tươi hơn rõ (chroma 0,909 so với 0,866).
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v12_384" / "epoch_06.pth",
-            # V10: V9 + ImageNet replay các lớp quân sự/cảnh Việt Nam; epoch 7 tốt nhất trên
-            # validation ImageNet các lớp này và ngang epoch 4 trên validation ảnh hiện đại.
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v10_targeted" / "epoch_07.pth",
-            # V9: train trên ảnh màu hiện đại; epoch 3 có chroma ratio validation tốt nhất.
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v9_modern" / "epoch_03.pth",
-            # Epoch 1 có điểm validation và audit 100 ảnh tốt nhất của run V8 20 epoch;
-            # latest.pth (epoch 20) kém hơn V6 refined trên mọi metric.
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v8_imagenet100k_vietnam_20e_resumable" / "epoch_01.pth",
-            ROOT / "checkpoints" / "runs" / "vietcolornet_v6_refined" / "best.pth",
-            ROOT / "checkpoints" / "runs" / "vietcolornet_master_v4" / "best.pth",
-            ROOT / "checkpoints" / "runs" / "vietcolornet_distilled_v3" / "best.pth",
-            ROOT / "checkpoints" / "runs" / "vietcolornet_replay_v2" / "best.pth",
-            ROOT / "checkpoints" / "runs" / "vietcolornet_historical_v1" / "best.pth",
-            ROOT / "checkpoints" / "runs" / "smoke_vietcolornet" / "best.pth",
-        ]
-        for candidate in candidates:
-            if candidate.is_file():
-                vnet_candidate = candidate
-                break
+    # 2. Hai mô hình VietColorNet được giữ lại, trong checkpoints/models/:
+    #  - historical (mặc định): train thêm trên phim tư liệu ViCoW; ít ám vàng nâu, chống lem tốt hơn.
+    #  - vivid: không dùng phim tư liệu; màu tươi hơn nhưng ám vàng nâu nhiều hơn.
+    model_dir = ROOT / "checkpoints" / "models"
+    historical = model_dir / "vietcolornet_historical.pth"
+    vivid = model_dir / "vietcolornet_vivid.pth"
+    primary = Path(args.checkpoint) if args.checkpoint and Path(args.checkpoint).is_file() else historical
 
-    if vnet_candidate:
+    if primary.is_file():
         try:
-            engine_vnet = ColorizationEngine(vnet_candidate, device=args.device)
-            is_v15 = "vietcolornet_v15_vicow" in str(vnet_candidate)
-            is_v12 = "vietcolornet_v12_384" in str(vnet_candidate)
-            is_v10 = "vietcolornet_v10_targeted" in str(vnet_candidate)
-            is_v9 = "vietcolornet_v9_modern" in str(vnet_candidate)
-            is_v8 = "vietcolornet_v8_imagenet100k_vietnam_20e_resumable" in str(vnet_candidate)
-            is_v6 = "vietcolornet_v6_refined" in str(vnet_candidate)
-            is_master = "master_v4" in str(vnet_candidate)
-            if is_v15:
-                label = "VietColorNet V15 (Màu hiện đại + tư liệu lịch sử · 384 px)"
-                desc = "Train ở 384 px trên ảnh màu hiện đại, ảnh quân đội Việt Nam và phim tư liệu ViCoW; phục hồi ảnh và chống lem màu bằng SAM"
-            elif is_v12:
-                label = "VietColorNet V12 (Màu hiện đại · 384 px)"
-                desc = "Train ở 384 px trên ảnh màu hiện đại Việt Nam, ImageNet chọn lọc và ảnh quân đội Việt Nam; phục hồi ảnh và chống lem màu bằng SAM"
-            elif is_v10:
-                label = "VietColorNet V10 (Màu hiện đại)"
-                desc = "Train trên ảnh màu hiện đại Việt Nam và ImageNet chọn lọc (quân sự, nông thôn); phục hồi ảnh và chống lem màu khi suy luận"
-            elif is_v9:
-                label = "VietColorNet V9 (Màu hiện đại)"
-                desc = "Train trên ảnh màu hiện đại Việt Nam, có augmentation ảnh mờ/nhiễu; phục hồi ảnh và chống lem màu khi suy luận"
-            elif is_v8:
-                label = "VietColorNet V8"
-                desc = "Mô hình VietColorNet V8 đã tích hợp bộ tinh chỉnh chân thực tự nhiên"
-            elif is_v6:
-                label = "VietColorNet V6 (Mô hình Đề Xuất · Chroma Calibration)"
-                desc = "Kiến trúc V6 với CPCA, Edge Stream, Hue–Chroma tách biệt và hiệu chỉnh chroma theo từng ảnh"
-            elif is_master:
-                label = "VietColorNet Master V4 (Mô hình Đề Xuất · CPCA & Distillation)"
-                desc = "Kiến trúc tích hợp Bảng màu chú ý chéo (CPCA), Edge Stream & Chưng cất đa tầng từ DDColor V6"
-            else:
-                label = "VietColorNet (Mô hình Đề Xuất · Edge & Chroma)"
-                desc = "Kiến trúc tự thiết kế với Edge-Guidance Stream và Decoupled Hue-Chroma"
             engines["vietcolornet"] = {
-                "engine": engine_vnet,
-                "label": label,
-                "desc": desc,
+                "engine": ColorizationEngine(primary, device=args.device),
+                "label": "VietColorNet · Lịch sử (khuyên dùng)",
+                "desc": "Huấn luyện trên ảnh màu hiện đại Việt Nam, ảnh quân đội và phim tư liệu; phục hồi ảnh và chống lem màu bằng SAM",
             }
         except Exception as exc:
-            print(f"Warning: Could not load VietColorNet candidate {vnet_candidate}: {exc}")
+            print(f"Warning: Could not load VietColorNet {primary}: {exc}")
 
-    # V12 giữ làm lựa chọn khác: màu tươi hơn V15, nhưng ám vàng nâu nhiều hơn.
-    v12_checkpoint = ROOT / "checkpoints" / "runs" / "vietcolornet_v12_384" / "epoch_06.pth"
-    if (v12_checkpoint.is_file() and vnet_candidate
-            and v12_checkpoint.resolve() != Path(vnet_candidate).resolve()):
+    if vivid.is_file() and vivid.resolve() != primary.resolve():
         try:
-            engines["vietcolornet_v12"] = {
-                "engine": ColorizationEngine(v12_checkpoint, device=args.device),
-                "label": "VietColorNet V12 (384 px · màu tươi hơn, ám vàng nhiều hơn)",
-                "desc": "Bản trước V15, chưa dùng dữ liệu phim tư liệu; giữ để so sánh",
+            engines["vietcolornet_vivid"] = {
+                "engine": ColorizationEngine(vivid, device=args.device),
+                "label": "VietColorNet · Tươi (màu đậm hơn, dễ ám vàng)",
+                "desc": "Không dùng phim tư liệu; màu tươi hơn nhưng ám vàng nâu nhiều hơn",
             }
         except Exception as exc:
-            print(f"Warning: Could not load VietColorNet V12: {exc}")
-
-    # V10 giữ làm lựa chọn khác: với ảnh nhiều cây cỏ nó cho màu xanh tươi hơn V12.
-    v10_checkpoint = ROOT / "checkpoints" / "runs" / "vietcolornet_v10_targeted" / "epoch_07.pth"
-    if (v10_checkpoint.is_file() and vnet_candidate
-            and v10_checkpoint.resolve() != Path(vnet_candidate).resolve()):
-        try:
-            engines["vietcolornet_v10"] = {
-                "engine": ColorizationEngine(v10_checkpoint, device=args.device),
-                "label": "VietColorNet V10 (256 px · cây cỏ xanh tươi hơn)",
-                "desc": "Bản trước V12, giữ để so sánh và dùng cho ảnh nhiều cây cỏ",
-            }
-        except Exception as exc:
-            print(f"Warning: Could not load VietColorNet V10: {exc}")
-
-    # Khi V8 là mô hình chính, vẫn nạp nguyên V6 dưới một khóa riêng trong menu.
-    v6_checkpoint = ROOT / "checkpoints" / "runs" / "vietcolornet_v6_refined" / "best.pth"
-    if (v6_checkpoint.is_file() and vnet_candidate
-            and v6_checkpoint.resolve() != Path(vnet_candidate).resolve()):
-        try:
-            engines["vietcolornet_v6"] = {
-                "engine": ColorizationEngine(v6_checkpoint, device=args.device),
-                "label": "VietColorNet V6 (Bản cũ · Chroma Calibration)",
-                "desc": "Checkpoint V6 cũ được giữ nguyên để dự phòng và so sánh",
-            }
-        except Exception as exc:
-            print(f"Warning: Could not load preserved VietColorNet V6: {exc}")
+            print(f"Warning: Could not load VietColorNet vivid: {exc}")
 
     # Dự phòng nếu cả hai đều chưa có checkpoint chỉ định
     if not engines and args.checkpoint:
@@ -527,14 +439,14 @@ def create_demo(engines, output_dir, max_video_minutes=10.0, enable_video=False)
         info_lines = []
 
         if "ddcolor" in engines:
-            progress(0.3, desc="Đang chạy DDColor V6")
+            progress(0.3, desc="Đang chạy DDColor gốc")
             t0 = time.perf_counter()
             dd_result = engines["ddcolor"]["engine"].colorize_pil(img, strength)
             t_dd = time.perf_counter() - t0
-            info_lines.append(f"⏱️ **DDColor V6**: {t_dd:.2f}s")
+            info_lines.append(f"⏱️ **DDColor gốc**: {t_dd:.2f}s")
         else:
             dd_result = gray_image
-            info_lines.append("⚠️ DDColor V6: Chưa nạp được checkpoint")
+            info_lines.append("⚠️ DDColor gốc: Chưa nạp được checkpoint")
 
         if "vietcolornet" in engines:
             progress(0.65, desc="Đang chạy VietColorNet")
@@ -692,7 +604,7 @@ def create_demo(engines, output_dir, max_video_minutes=10.0, enable_video=False)
                 with gr.Tab("⚖️ Đối So Sánh Mô Hình (A/B Benchmark)"):
                     gr.Markdown("""
                     **Chế độ Đối So Sánh Độc Lập:** Cho phép so sánh trực quan cùng lúc giữa **Ảnh xám gốc**,
-                    **DDColor V6** (baseline transfer learning) và **VietColorNet** (mô hình đề xuất với Edge-Guidance, CPCA và Decoupled Chroma).
+                    **DDColor gốc** (baseline thuần) và **VietColorNet** (mô hình đề xuất với Edge-Guidance, CPCA và Decoupled Chroma).
                     """)
                     with gr.Row():
                         compare_input = gr.Image(
@@ -716,7 +628,7 @@ def create_demo(engines, output_dir, max_video_minutes=10.0, enable_video=False)
 
                     with gr.Row(equal_height=True):
                         comp_gray = gr.Image(type="pil", label="1. Ảnh xám đầu vào", interactive=False)
-                        comp_dd = gr.Image(type="pil", label="2. DDColor V6 (Baseline)", interactive=False)
+                        comp_dd = gr.Image(type="pil", label="2. DDColor gốc (Baseline)", interactive=False)
                         comp_vnet = gr.Image(type="pil", label="3. VietColorNet (Mô hình Đề Xuất)", interactive=False)
 
                     compare_btn.click(
@@ -795,12 +707,12 @@ def create_demo(engines, output_dir, max_video_minutes=10.0, enable_video=False)
                               <td><span class="pill-tag baseline">Baseline sơ khai</span></td>
                             </tr>
                             <tr>
-                              <td><strong>DDColor V6</strong></td>
+                              <td><strong>DDColor gốc</strong></td>
                               <td>ConvNeXt-T + Dual Decoder</td>
                               <td>~36.7M</td>
                               <td>Khá</td>
-                              <td>Khá (cải thiện V6)</td>
-                              <td><span class="pill-tag baseline">Sản phẩm đối chuẩn</span></td>
+                              <td>Khá</td>
+                              <td><span class="pill-tag baseline">Baseline thuần</span></td>
                             </tr>
                             <tr class="highlight-row">
                               <td><strong>VietColorNet (Đề xuất)</strong></td>
@@ -849,7 +761,7 @@ def create_demo(engines, output_dir, max_video_minutes=10.0, enable_video=False)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--selection", type=Path,
-                        default=ROOT / "outputs" / "reports" / "production_selection.json")
+                        default=ROOT / "outputs" / "reports" / "baseline_selection.json")
     parser.add_argument("--checkpoint", type=Path, help="Optional explicit project checkpoint (e.g. VietColorNet)")
     parser.add_argument("--output", type=Path, default=ROOT / "outputs" / "demo_outputs")
     parser.add_argument("--device", choices=("cuda", "cpu"))

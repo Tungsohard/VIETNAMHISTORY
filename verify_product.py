@@ -18,7 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--selection", type=Path,
-                        default=ROOT / "outputs" / "reports" / "production_selection.json")
+                        default=ROOT / "outputs" / "reports" / "baseline_selection.json")
     parser.add_argument("--load-model", action="store_true",
                         help="Also construct the model and load all checkpoint weights")
     args = parser.parse_args()
