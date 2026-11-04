@@ -87,6 +87,29 @@ def block_bootstrap(values, block, resamples, rng):
     return means
 
 
+def block_permutation_p(diff, block, resamples, rng):
+    """Two-sided p-value for mean(diff) == 0, flipping the sign of whole blocks of consecutive items.
+
+    Wilcoxon treats consecutive film frames as independent and so overstates significance;
+    flipping blocks keeps the within-block correlation, like the block bootstrap interval.
+    """
+    sums = np.array([diff[i:i + block].sum() for i in range(0, len(diff), block)])
+    observed = abs(sums.sum())
+    flips = rng.choice([-1.0, 1.0], size=(resamples, len(sums)))
+    return float(((np.abs(flips @ sums) >= observed - 1e-9).sum() + 1) / (resamples + 1))
+
+
+def holm(p_values):
+    """Holm step-down adjusted p-values for a family of comparisons."""
+    order = np.argsort(p_values)
+    adjusted = np.empty(len(p_values))
+    running = 0.0
+    for rank, index in enumerate(order):
+        running = max(running, (len(p_values) - rank) * p_values[index])
+        adjusted[index] = min(1.0, running)
+    return adjusted
+
+
 def interval(values, block, resamples, rng):
     means = block_bootstrap(values, block, resamples, rng)
     return [float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))]
@@ -112,6 +135,7 @@ def main():
     parser.add_argument("--stride", type=int, default=1)
     parser.add_argument("--max-side", type=int, default=640)
     parser.add_argument("--resamples", type=int, default=5000)
+    parser.add_argument("--permutations", type=int, default=20000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", type=Path, default=ROOT / "outputs" / "reports" / "statistical_comparison")
     parser.add_argument("--device", default=None)
@@ -162,13 +186,20 @@ def main():
                             "ci95": interval(diff, BLOCK[s], args.resamples, rng)}
                     if np.any(diff != 0):
                         stat["wilcoxon_p"] = float(wilcoxon(diff).pvalue)
+                    stat["block_perm_p"] = block_permutation_p(diff, BLOCK[s], args.permutations, rng)
                     if LOWER_IS_BETTER[m] is not None:
                         stat["a_better_share"] = float((diff < 0).mean())
                     pair[m] = stat
                 entry["pairs"].append(pair)
+        for m in METRICS[:3]:  # Holm correction over all model pairs of one metric
+            adjusted = holm(np.array([pair[m]["block_perm_p"] for pair in entry["pairs"]]))
+            for pair, value in zip(entry["pairs"], adjusted):
+                pair[m]["block_perm_p_holm"] = float(value)
         report["sets"][s] = entry
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(args.output.with_suffix(".npz"),
+                        **{f"{s}|{n}|{m}": per_image[s][n][m] for s in sets for n in names for m in METRICS})
     args.output.with_suffix(".json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     args.output.with_suffix(".md").write_text(render_markdown(report, names), encoding="utf-8")
     print(render_markdown(report, names))
@@ -187,12 +218,13 @@ def render_markdown(report, names):
                 cells.append(f"{v['mean']:.3f} [{v['ci95'][0]:.3f}, {v['ci95'][1]:.3f}]")
             lines.append(f"| {name} | " + " | ".join(cells) + " |")
         lines += ["", "Chênh lệch cặp (A − B), khoảng tin cậy 95%, Wilcoxon p, tỉ lệ ảnh A tốt hơn:", "",
-                  "| A vs B | Độ đo | Chênh lệch TB | KTC 95% | p | A tốt hơn |", "|---|---|---|---|---|---|"]
+                  "| A vs B | Độ đo | Chênh lệch TB | KTC 95% | p (hoán vị theo khối, đã hiệu chỉnh Holm) | p Wilcoxon (tham khảo) | A tốt hơn |", "|---|---|---|---|---|---|---|"]
         for pair in entry["pairs"]:
             for m in METRICS[:3]:
                 d = pair[m]
                 lines.append(f"| {pair['a']} vs {pair['b']} | {labels[m]} | {d['mean_diff']:+.3f} | "
-                             f"[{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}] | {d.get('wilcoxon_p', float('nan')):.2g} | "
+                             f"[{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}] | {d['block_perm_p_holm']:.2g} | "
+                             f"{d.get('wilcoxon_p', float('nan')):.2g} | "
                              f"{d['a_better_share'] * 100:.0f}% |")
         lines.append("")
     return "\n".join(lines)

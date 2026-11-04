@@ -420,9 +420,10 @@ Theo yêu cầu kiểm tra độ ổn định, mọi so sánh dưới đây dùn
 | Ảnh hiện đại (757) | ΔE2000 ↓ | 12,19 | 12,72 | 12,25 | 12,39 ± 0,29 | 12,61 | 11,77 |
 | | Sai số biên ↓ | 12,42 | 12,67 | 12,41 | 12,50 ± 0,15 | 12,75 | 12,91 |
 
-- Trên phim, cả ba seed thắng DDColor gốc có ý nghĩa thống kê (ΔE thấp hơn 0,80 đến 1,87; sai số biên thấp hơn 3,2 đến 4,4; p < 10⁻⁶). Seed phát hành (2026) là seed tốt nhất trong ba, nên nên báo cáo trung bình 10,21 ± 0,57 thay vì 9,56.
-- So với "Tươi", lợi thế về ΔE trên phim nhỏ (seed 1 chỉ hơn 0,39, khoảng tin cậy chạm 0), còn lợi thế về sai số tại biên ổn định ở cả ba seed.
-- Trên ảnh hiện đại, DDColor gốc có ΔE thấp hơn ở cả ba seed (0,42 đến 0,95); về sai số biên hai seed tốt hơn nhẹ và seed 1 hòa (p = 0,06).
+- Trên phim, **sai số tại biên** của "Lịch sử" thấp hơn DDColor gốc ở cả ba seed (thấp hơn 3,2 đến 4,4; p hoán vị theo khối đã hiệu chỉnh Holm ≈ 0,0005, mức nhỏ nhất đo được với 20.000 hoán vị) và thấp hơn "Tươi" ở cả ba seed (1,3 đến 2,5). Đây là kết luận ổn định nhất.
+- **ΔE trên phim** thấp hơn DDColor gốc ở cả ba seed (0,80 đến 1,87), nhưng với seed 1 và seed 2 chỉ có ý nghĩa ở mức biên (p đã hiệu chỉnh 0,039 và 0,032). So với "Tươi", seed 1 và seed 2 **không đạt ý nghĩa** (p = 0,091 và 0,071; seed 2026 thì đạt). Seed phát hành (2026) là seed tốt nhất trong ba, nên nên báo cáo trung bình 10,21 ± 0,57.
+- Trên ảnh hiện đại, DDColor gốc có ΔE thấp hơn ở cả ba seed (0,42 đến 0,95; p đã hiệu chỉnh ≤ 0,005). Về sai số biên, seed 2026 và seed 2 tốt hơn nhẹ (p ≈ 0,004–0,005) còn seed 1 không khác biệt (p = 0,27).
+- **Lưu ý về p-value:** bản trước dùng Wilcoxon coi các khung phim liền nhau là độc lập nên cho p cực nhỏ (cỡ 10⁻²⁸), đã bỏ khỏi kết luận vì đánh giá quá chắc. Bảng ở `seed_variance.md` giữ Wilcoxon chỉ để tham khảo; kết luận dựa trên khoảng tin cậy bootstrap theo khối và p hoán vị theo khối có hiệu chỉnh Holm. Các bảng `pipeline_*` vẫn dùng Wilcoxon và chỉ nên đọc số trung bình.
 - Độ lệch seed chỉ phản ánh giai đoạn tinh chỉnh; checkpoint "Tươi" xuất phát dùng chung nên chưa được lặp lại. Ba seed là mẫu nhỏ.
 
 **Ảnh hưởng của pipeline suy luận.** Cùng ba mô hình và cùng tập test, so ba cấu hình áp dụng giống hệt cho mọi mô hình (`pipeline_raw`, `pipeline_refined`, `pipeline_refined_sam`; ΔE2000, chế độ natural):
