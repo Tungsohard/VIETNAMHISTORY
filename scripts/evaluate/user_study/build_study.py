@@ -1,8 +1,7 @@
 """Build a blind, three-way user study comparing the two VietColorNet models and the DDColor baseline.
 
 For each of 20 greyscale images the participant sees the three colourisations in a random,
-per-image order (labelled A/B/C) and answers two questions: which looks most natural, and
-which bleeds colour across object borders the least. Model identities are stored only in
+per-image order (labelled A/B/C) and answers one question: which looks the most natural and real. Model identities are stored only in
 ``key.json``, which must not be shared with participants.
 
 All three models go through the identical pipeline (mode ``natural`` + SAM), so differences
@@ -53,12 +52,28 @@ def collect_images():
     return items
 
 
+def write_page(args, template, trials):
+    page = (template.replace("__TRIALS__", json.dumps(trials))
+            .replace("__FORM_URL__", args.form_url).replace("__FORM_ENTRY__", args.form_entry))
+    (args.output / "index.html").write_text(page, encoding="utf-8")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--output", type=Path, default=ROOT / "build" / "user_study")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--form-url", default="", help="Google Form .../formResponse URL that receives the answers")
+    parser.add_argument("--form-entry", default="", help="the form field name, e.g. entry.1234567890")
+    parser.add_argument("--reuse-images", action="store_true",
+                        help="only rewrite index.html from the existing trials.json (no model runs)")
     args = parser.parse_args()
+
+    template = (Path(__file__).parent / "study_template.html").read_text(encoding="utf-8")
+    if args.reuse_images:
+        trials = json.loads((args.output / "trials.json").read_text(encoding="utf-8"))
+        write_page(args, template, trials)
+        return
 
     from colorization.segmentation import ObjectSegmenter
     segmenter = CachedSegmenter(ObjectSegmenter.try_create(device=args.device))
@@ -98,8 +113,7 @@ def main():
 
     (args.output / "key.json").write_text(json.dumps(key, indent=2), encoding="utf-8")
     (args.output / "trials.json").write_text(json.dumps(trials), encoding="utf-8")
-    template = (Path(__file__).parent / "study_template.html").read_text(encoding="utf-8")
-    (args.output / "index.html").write_text(template.replace("__TRIALS__", json.dumps(trials)), encoding="utf-8")
+    write_page(args, template, trials)
     print(f"Study written to {args.output} ({len(trials)} images). Share everything except key.json.")
 
 

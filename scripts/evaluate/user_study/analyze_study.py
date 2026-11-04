@@ -1,6 +1,6 @@
 """Analyse the blind user study: which model do participants pick, and is the difference reliable?
 
-Reads the JSON files returned by participants and the private ``key.json`` that maps the
+Reads the JSON files returned by participants (or the CSV exported from the Google Form) and the private ``key.json`` that maps the
 shuffled A/B/C labels back to models. For each question it reports every model's share of
 "best" votes with a participant-level bootstrap 95% interval (a participant's 20 answers are
 correlated, so participants, not answers, are resampled), the paired difference between models
@@ -12,6 +12,7 @@ Usage:
         --output outputs/reports/user_study
 """
 import argparse
+import csv
 import json
 import sys
 from itertools import combinations
@@ -19,22 +20,46 @@ from pathlib import Path
 
 import numpy as np
 
-QUESTIONS = {"natural": "Màu tự nhiên, đáng tin nhất", "bleed": "Ít lem màu qua viền nhất"}
+QUESTIONS = {"natural": "Màu tự nhiên và thật nhất"}
 MODELS = ("historical", "vivid", "ddcolor")
 DISPLAY = {"historical": "VietColorNet · Lịch sử", "vivid": "VietColorNet · Tươi", "ddcolor": "DDColor gốc"}
 GROUPS = ("archive", "film", "modern")
 
 
+def read_responses(path):
+    """Yield (label, response dict) from a participant JSON file or a Google Forms CSV export."""
+    path = Path(path)
+    if path.suffix.lower() != ".csv":
+        yield path.name, json.loads(path.read_text(encoding="utf-8"))
+        return
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.reader(handle))
+    for number, row in enumerate(rows[1:], start=2):
+        cell = next((c for c in reversed(row) if c.lstrip().startswith("{")), None)
+        if cell is None:
+            print(f"skipping {path.name} row {number}: no JSON answer", file=sys.stderr)
+            continue
+        try:
+            yield f"{path.name}:{number}", json.loads(cell)
+        except json.JSONDecodeError:
+            print(f"skipping {path.name} row {number}: unreadable JSON", file=sys.stderr)
+
+
 def load(key_path, response_paths):
     key = json.loads(Path(key_path).read_text(encoding="utf-8"))
-    participants = []
+    participants, seen = [], set()
     for path in response_paths:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        answers = data["answers"]
-        if set(answers) != set(key) or not all(a.get("natural") and a.get("bleed") for a in answers.values()):
-            print(f"skipping {path}: incomplete answers", file=sys.stderr)
-            continue
-        participants.append(answers)
+        for label, data in read_responses(path):
+            answers = data.get("answers", {})
+            if set(answers) != set(key) or not all(a.get("natural") for a in answers.values()):
+                print(f"skipping {label}: incomplete answers", file=sys.stderr)
+                continue
+            identity = data.get("participant", label)
+            if identity in seen:
+                print(f"skipping {label}: participant {identity} already counted", file=sys.stderr)
+                continue
+            seen.add(identity)
+            participants.append(answers)
     return key, participants
 
 

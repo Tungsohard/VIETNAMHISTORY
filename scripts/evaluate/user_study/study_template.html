@@ -42,7 +42,7 @@
 <main>
   <section id="intro" class="card">
     <h1>Khảo sát tô màu ảnh đen trắng</h1>
-    <p>Bạn sẽ xem <b>20 ảnh đen trắng</b>, mỗi ảnh có <b>3 bản tô màu</b> (A, B, C) do các chương trình khác nhau tạo ra. Với mỗi ảnh bạn trả lời 2 câu hỏi ngắn. Khoảng 8–10 phút.</p>
+    <p>Bạn sẽ xem <b>20 ảnh đen trắng</b>, mỗi ảnh có <b>3 bản tô màu</b> (A, B, C) do các chương trình khác nhau tạo ra. Với mỗi ảnh bạn chọn <b>1 bản</b> theo một câu hỏi duy nhất. Khoảng 5 phút.</p>
     <ul class="muted">
       <li>Không có đáp án đúng hay sai, chỉ chọn theo cảm nhận của bạn.</li>
       <li>Thứ tự A/B/C được xáo ngẫu nhiên cho từng ảnh; bạn không biết bản nào của chương trình nào.</li>
@@ -58,8 +58,7 @@
     <div class="card grey"><p class="muted" style="text-align:center">Ảnh gốc (đen trắng)</p><img id="grey" alt="Ảnh gốc đen trắng"></div>
     <div class="options" id="options"></div>
     <div class="card">
-      <fieldset><legend>1. Bản nào có màu <b>tự nhiên và đáng tin</b> nhất?</legend><div class="choices" id="q1"></div></fieldset>
-      <fieldset><legend>2. Bản nào <b>ít bị lem màu</b> qua viền người và vật nhất (ví dụ màu áo tràn sang nền)?</legend><div class="choices" id="q2"></div></fieldset>
+      <fieldset><legend>Bản nào có màu <b>tự nhiên và thật</b> nhất?</legend><div class="choices" id="q1"></div></fieldset>
     </div>
     <div style="display:flex; gap:8px; justify-content:space-between">
       <button id="back">← Quay lại</button>
@@ -69,9 +68,10 @@
 
   <section id="done" class="card" hidden>
     <h1>Cảm ơn bạn!</h1>
-    <p>Bấm nút dưới để tải file kết quả, rồi gửi file đó lại cho người thực hiện khảo sát.</p>
-    <button class="primary" id="download">Tải file kết quả</button>
+    <p id="doneText">Bấm nút dưới để gửi kết quả của bạn.</p>
+    <button class="primary" id="submit">Gửi kết quả</button>
     <p class="muted" id="saved" style="margin-top:12px"></p>
+    <p><button id="download" hidden>Tải bản sao kết quả (nếu gửi không được)</button></p>
   </section>
 </main>
 <dialog id="zoom"><img id="zoomImg" alt=""></dialog>
@@ -109,9 +109,8 @@ function render() {
   document.querySelectorAll(".opt img").forEach((img) => img.addEventListener("click", () => {
     $("zoomImg").src = img.dataset.src; $("zoom").showModal();
   }));
-  const update = () => { $("next").disabled = !(answers[code] && answers[code].natural && answers[code].bleed); };
+  const update = () => { $("next").disabled = !(answers[code] && answers[code].natural); };
   choiceGroup($("q1"), "q1", a.natural, (v) => { answers[code] = { ...answers[code], natural: v }; saveLocal(); update(); });
-  choiceGroup($("q2"), "q2", a.bleed, (v) => { answers[code] = { ...answers[code], bleed: v }; saveLocal(); update(); });
   $("back").disabled = index === 0;
   $("next").textContent = index === TRIALS.length - 1 ? "Hoàn thành" : "Tiếp →";
   update();
@@ -125,14 +124,39 @@ $("next").addEventListener("click", () => {
   if (index < TRIALS.length - 1) { index++; render(); return; }
   $("trial").hidden = true; $("done").hidden = false;
 });
-$("download").addEventListener("click", () => {
-  const payload = { participant: pid, finished: new Date().toISOString(), answers };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+const FORM_URL = "__FORM_URL__";
+const FORM_ENTRY = "__FORM_ENTRY__";
+const payload = () => ({ participant: pid, finished: new Date().toISOString(), answers });
+
+function downloadCopy() {
+  const blob = new Blob([JSON.stringify(payload(), null, 2)], { type: "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = `khaosat_${pid}.json`;
   link.click();
-  $("saved").textContent = `Đã tải file khaosat_${pid}.json. Nếu không thấy file, kiểm tra thư mục Tải xuống.`;
+}
+$("download").addEventListener("click", downloadCopy);
+
+$("submit").addEventListener("click", async () => {
+  const button = $("submit");
+  if (!FORM_URL || FORM_URL.startsWith("__")) {          // not configured: fall back to a file
+    $("download").hidden = false; downloadCopy();
+    $("saved").textContent = "Đã tải file kết quả; hãy gửi file đó lại cho người thực hiện khảo sát.";
+    return;
+  }
+  button.disabled = true; button.textContent = "Đang gửi…";
+  try {
+    const body = new URLSearchParams({ [FORM_ENTRY]: JSON.stringify(payload()) });
+    await fetch(FORM_URL, { method: "POST", mode: "no-cors", body });   // opaque response: delivery cannot be read back
+    $("doneText").textContent = "Đã gửi. Cảm ơn bạn đã tham gia!";
+    button.hidden = true;
+    $("saved").textContent = "Bạn có thể đóng trang này.";
+    try { localStorage.removeItem("study_answers"); } catch (e) {}
+  } catch (e) {
+    button.disabled = false; button.textContent = "Thử gửi lại";
+    $("saved").textContent = "Không gửi được (kiểm tra mạng). Bạn có thể thử lại hoặc tải bản sao bên dưới.";
+    $("download").hidden = false;
+  }
 });
 </script>
 </body>
