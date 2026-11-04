@@ -52,3 +52,8 @@ Thumbs.db
 !/outputs/reports/pipeline_refined_sam.md
 !/outputs/reports/statistical_comparison_official.json
 !/outputs/reports/statistical_comparison_official.md
+!/outputs/reports/colour_cast.json
+!/outputs/reports/colour_cast_natural.json
+!/outputs/reports/colour_cast_natural_v2.json
+!/outputs/reports/natural_vs_baselines.json
+!/outputs/reports/natural_vs_baselines.md

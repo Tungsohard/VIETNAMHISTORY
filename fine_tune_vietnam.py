@@ -290,6 +290,21 @@ def validate_chroma_aware(model, batches, device, config):
             "val_selection_score": selection_score}
 
 
+def teacher_ab(teacher, luminance, teacher_size):
+    """Teacher colours for ``luminance``, computed at the size the teacher was trained on.
+
+    A teacher trained at 256 px produces worse colours when fed 384 px input, so the input is
+    resized to the teacher's own resolution and its ab output is resized back.
+    """
+    height, width = luminance.shape[-2:]
+    if teacher_size and (height != teacher_size or width != teacher_size):
+        small = F.interpolate(luminance.float(), size=(teacher_size, teacher_size), mode="bilinear",
+                              align_corners=False, antialias=True)
+        ab = teacher(small)
+        return F.interpolate(ab.float(), size=(height, width), mode="bilinear", align_corners=False)
+    return teacher(luminance)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "configs" / "ddcolor_vietnam_adaptation.json")
@@ -434,13 +449,14 @@ def main():
     if config.get("rebalance_prior"):
         _REBALANCE = load_rebalance(prior_path, device)
     model = build_model(model_config).to(device)
-    teacher = None
+    teacher, teacher_size = None, 0
     if args.teacher_checkpoint and args.teacher_checkpoint.is_file():
         print(f"Loading Teacher model for distillation from: {args.teacher_checkpoint}")
         teacher_ckpt = load_checkpoint(args.teacher_checkpoint)
         teacher_cfg = {**teacher_ckpt["run_config"], "pretrained_encoder": False}
         teacher = build_model(teacher_cfg).to(device).eval()
         teacher.load_state_dict(teacher_ckpt["model_state_dict"], strict=True)
+        teacher_size = int(teacher_cfg.get("image_size", 0))
         for p in teacher.parameters():
             p.requires_grad = False
     if hasattr(model, "semantic_parameters") and config.get("semantic_learning_rate"):
@@ -560,7 +576,7 @@ def main():
                 for b in val_loader:
                     v_lum = b["L"].to(device)
                     v_pred = model(v_lum)
-                    v_teach = teacher(v_lum)
+                    v_teach = teacher_ab(teacher, v_lum, teacher_size)
                     val_distill_sum += F.l1_loss(v_pred, v_teach).item() * len(v_lum)
                     val_distill_count += len(v_lum)
                 baseline_metrics["val_distill_l1"] = val_distill_sum / max(val_distill_count, 1)
@@ -653,11 +669,11 @@ def main():
                                      * classification_colour_loss(model.last_color_logits, target, _REBALANCE))
                     if teacher is not None:
                         with torch.no_grad():
-                            teacher_ab = teacher(luminance)
-                        t_chroma = torch.linalg.vector_norm(teacher_ab, dim=1, keepdim=True)
+                            teacher_target = teacher_ab(teacher, luminance, teacher_size)
+                        t_chroma = torch.linalg.vector_norm(teacher_target, dim=1, keepdim=True)
                         saliency_boost = 1.0 + float(config.get("distill_saliency_boost", 2.5)) * torch.clamp(t_chroma / 0.15, 0.0, 1.0)
-                        kd_l1 = (torch.abs(prediction - teacher_ab) * saliency_boost).mean()
-                        kd_hue = (1.0 - F.cosine_similarity(prediction, teacher_ab, dim=1, eps=1e-6))
+                        kd_l1 = (torch.abs(prediction - teacher_target) * saliency_boost).mean()
+                        kd_hue = (1.0 - F.cosine_similarity(prediction, teacher_target, dim=1, eps=1e-6))
                         colorful_mask = (t_chroma.squeeze(1) > float(config.get("hue_chroma_threshold", 0.03125)))
                         kd_hue = (kd_hue * colorful_mask).sum() / colorful_mask.sum().clamp_min(1.0)
                         distill_loss = kd_l1 + float(config.get("distill_hue_weight", 0.10)) * kd_hue
@@ -754,7 +770,7 @@ def main():
                 for b in val_loader:
                     v_lum = b["L"].to(device)
                     v_pred = model(v_lum)
-                    v_teach = teacher(v_lum)
+                    v_teach = teacher_ab(teacher, v_lum, teacher_size)
                     val_distill_sum += F.l1_loss(v_pred, v_teach).item() * len(v_lum)
                     val_distill_count += len(v_lum)
                 metrics["val_distill_l1"] = val_distill_sum / max(val_distill_count, 1)
