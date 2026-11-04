@@ -2,7 +2,7 @@
 
 Sắc Việt là hệ thống nghiên cứu và triển khai tô màu ảnh, video tư liệu lịch sử Việt Nam bằng học sâu. Dự án phát triển **VietColorNet** như kiến trúc đề xuất của khóa luận, đồng thời dùng **DDColor** làm baseline/đối chứng và teacher trong các thí nghiệm chưng cất tri thức.
 
-> Trạng thái hiện tại: ứng dụng web có ba mô hình trong menu: **VietColorNet · Lịch sử** (mặc định, `checkpoints/models/vietcolornet_historical.pth`, trước đây là V15 epoch 3, 384 px), **VietColorNet · Tươi** (`vietcolornet_vivid.pth`, trước đây là V12 epoch 6) và **DDColor gốc** (trọng số công bố chính thức, chưa tinh chỉnh) làm baseline thuần. DDColor V6 tinh chỉnh đã bị vô hiệu hóa. Pipeline phục hồi ảnh và chống lem màu bằng SAM chỉ áp dụng cho VietColorNet. Trên phim tư liệu chưa thấy, "Lịch sử" giảm sai số tại biên khoảng 31% so với DDColor gốc (trung bình 3 seed); trên ảnh hiện đại, DDColor gốc có ΔE thấp hơn một chút (xem mục Đánh giá thống kê). Mô hình chưa đạt cổng phân bố chroma; màu cây cỏ vẫn lệch vàng so với màu thật.
+> Trạng thái hiện tại: ứng dụng web có ba mô hình trong menu: **VietColorNet · Lịch sử** (mặc định, `checkpoints/models/vietcolornet_historical.pth`, trước đây là V15 epoch 3, 384 px), **VietColorNet · Tươi** (`vietcolornet_vivid.pth`, trước đây là V12 epoch 6) và **DDColor gốc** (trọng số công bố chính thức, chưa tinh chỉnh) làm baseline thuần. DDColor V6 tinh chỉnh đã bị xóa khỏi dự án (config và báo cáo cũ vẫn còn trong nhật ký nghiên cứu). Pipeline phục hồi ảnh và chống lem màu bằng SAM chỉ áp dụng cho VietColorNet. Trên phim tư liệu chưa thấy, "Lịch sử" giảm sai số tại biên khoảng 31% so với DDColor gốc (trung bình 3 seed); trên ảnh hiện đại, DDColor gốc có ΔE thấp hơn một chút (xem mục Đánh giá thống kê). Mô hình chưa đạt cổng phân bố chroma; màu cây cỏ vẫn lệch vàng so với màu thật.
 
 ## Mục lục
 
@@ -55,7 +55,6 @@ Hệ thống dùng không gian màu CIE Lab: mô hình nhận kênh độ sáng 
 | Baseline thuần | DDColor gốc (`checkpoints/pretrained/ddcolor_paper_tiny.pth`) | Được ghi trong `outputs/reports/baseline_selection.json`, kiểm tra SHA-256 khi nạp; không tinh chỉnh |
 | VietColorNet mặc định trong demo | **VietColorNet · Lịch sử** (tên cũ V15 epoch 3, 384 px) | Tốt nhất trên phim tư liệu chưa thấy; chưa đạt cổng phát hành |
 | VietColorNet lựa chọn khác | **VietColorNet · Tươi** (tên cũ V12 epoch 6) | Màu tươi hơn nhưng ám vàng nâu nhiều hơn; giữ làm đối chứng |
-| DDColor V6 tinh chỉnh | `checkpoints/runs/ddcolor_historical_still_replay_v6` | Vô hiệu hóa, không còn được nạp; chỉ giữ file để tái lập |
 | Mốc rollback VietColorNet | VietColorNet Master V4 | Giữ để tái lập và so sánh |
 | V7/V7.1 | DINOv2, palette loss và MoE ablations | Đã đánh giá, không phát hành |
 | V11, V13, V14 | Thêm 220 ảnh quân đội; 512 px + cân bằng màu hiếm; đầu ra phân loại màu | Đã đánh giá, không thay V12/V15 (xem mục V10–V15) |

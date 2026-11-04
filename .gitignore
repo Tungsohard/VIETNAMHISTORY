@@ -29,7 +29,6 @@
 /outputs/*
 !/outputs/reports/
 /outputs/reports/*
-!/outputs/reports/production_selection.json
 
 # OS and editor files.
 .DS_Store
