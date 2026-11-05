@@ -1,6 +1,7 @@
 """Measure colour cast (the yellow-brown tint) of colourisation models on held-out modern photos.
 
 Per image, in CIE Lab against the true colours, over pixels of one semantic colour class:
+  skin     approximate YCrCb skin mask on the true image: a*, b*, ab error and chroma ratio
   neutral  true chroma < 5:   predicted mean b* and chroma (should be about 0)
   green    true a* < -10:     a* error (a model that tints foliage yellow has a positive error)
   sky      true b* < -8, L>45: b* error (a yellow cast makes it positive)
@@ -36,11 +37,19 @@ def image_cast(engine, rgb, mode=None):
     pa, pb = pred[..., 1], pred[..., 2]
     chroma = np.hypot(a, b)
     out = {"overall_b_error": float((pb - b).mean())}
-    masks = {"neutral": chroma < 5, "green": (a < -10) & (b > 5), "sky": (b < -8) & (L > 45)}
+    ycrcb = cv2.cvtColor(rgb, cv2.COLOR_RGB2YCrCb)
+    skin = ((ycrcb[..., 1] >= 133) & (ycrcb[..., 1] <= 173) & (ycrcb[..., 2] >= 77) & (ycrcb[..., 2] <= 127)
+            & (L > 25) & (L < 90) & (chroma > 8))
+    masks = {"skin": skin, "neutral": chroma < 5, "green": (a < -10) & (b > 5), "sky": (b < -8) & (L > 45)}
     for name, mask in masks.items():
         if mask.mean() < MIN_FRACTION:
             continue
-        if name == "neutral":
+        if name == "skin":
+            out["skin_a_error"] = float((pa - a)[mask].mean())
+            out["skin_b_error"] = float((pb - b)[mask].mean())
+            out["skin_ab_mae"] = float((np.abs(pa - a) + np.abs(pb - b))[mask].mean() / 2)
+            out["skin_chroma_ratio"] = float(np.hypot(pa[mask], pb[mask]).mean() / max(chroma[mask].mean(), 1e-3))
+        elif name == "neutral":
             out["neutral_b"] = float(pb[mask].mean())
             out["neutral_chroma"] = float(np.hypot(pa[mask], pb[mask]).mean())
         elif name == "green":
