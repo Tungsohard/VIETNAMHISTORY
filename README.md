@@ -441,6 +441,41 @@ Hậu xử lý giúp cả ba mô hình một chút nhưng không đổi thứ h�
 
 **Lưu ý phương pháp.** Chỉ số chroma ratio không đáng tin vì nhiều ảnh gần xám, nên không dùng. Ảnh lịch sử không có đáp án màu độc lập; "màu thật" của phim là màu phim cũ. DDColor gốc không được huấn luyện trên dữ liệu Việt Nam, còn VietColorNet dùng một tập con ImageNet nhỏ ở 64 px, nên đây không phải so sánh cùng ngân sách huấn luyện.
 
+### Phương án chốt và các kết quả bổ sung
+
+**Hệ thống chốt:** ba mô hình trong menu (VietColorNet "Lịch sử" mặc định, VietColorNet "Tươi", DDColor gốc làm baseline), pipeline hậu xử lý và SAM như mô tả ở trên. Không còn thay đổi nào sau mục này. Dưới đây là bằng chứng đầy đủ, gồm cả các kết quả không có lợi cho VietColorNet.
+
+**Khảo sát người dùng** (`scripts/evaluate/user_study/`, báo cáo `outputs/reports/user_study.md`). 11 người, 20 ảnh (5 ảnh tư liệu, 8 khung phim chưa thấy, 7 ảnh hiện đại), so mù ba mô hình cùng pipeline (chế độ natural + SAM), câu hỏi: "bản nào có màu tự nhiên và thật nhất". Khoảng tin cậy 95% lấy mẫu theo người tham gia.
+
+| Mô hình | Được chọn | Khoảng tin cậy |
+|---|---|---|
+| **DDColor gốc** | **73,2%** | [63,2%; 81,4%] |
+| VietColorNet · Tươi | 15,9% | [11,4%; 21,4%] |
+| VietColorNet · Lịch sử | 10,9% | [5,5%; 17,3%] |
+
+DDColor gốc được chọn nhiều nhất ở cả ba nhóm ảnh (tư liệu 65%, phim 75%, hiện đại 77%); 10 trên 11 người chọn nó ở 60–90% số ảnh. Hạn chế: 11 người quen, mẫu thuận tiện; hai người đầu làm bản có thêm một câu hỏi về lem màu (không dùng); vị trí A/B/C chưa cân bằng hoàn toàn (DDColor chỉ ở vị trí A trong 2 ảnh, nhưng vẫn được chọn nhiều nhất ở mọi vị trí); khảo sát dùng chế độ natural, không phải chế độ "modern" mặc định của sản phẩm. Khảo sát không đo riêng lem màu, nên không kết luận được về lợi ích của SAM.
+
+**Ám màu** (`scripts/evaluate/colour_cast.py`, 757 ảnh hiện đại, đầu ra thô; dương = lệch về phía vàng hoặc mất xanh):
+
+| Chỉ số | Lịch sử | Tươi | DDColor gốc |
+|---|---|---|---|
+| b* toàn ảnh | +0,9 | +3,5 | +0,6 |
+| Vùng xám, b* (đúng ≈ 0) | +6,2 | +7,8 | **+4,4** |
+| Cây cỏ, mất xanh (a*) | +20,2 | +21,1 | **+18,4** |
+| Bầu trời, ngả vàng (b*) | +26,4 | +28,9 | **+21,1** |
+| Da: sai số ab (mặt nạ màu thô) | **9,9** | 10,0 | 13,0 |
+| Da: độ đậm so với thật (đúng = 1,0) | 0,77 | 0,90 | **1,04** |
+
+Cả ba mô hình đều làm mất màu xanh của cây và bầu trời; da của VietColorNet nhạt hơn thật. Mặt nạ da ước lượng theo màu nên lẫn cả vật không phải da.
+
+**Độ bền với ảnh xuống cấp** (`scripts/evaluate/degradation_robustness.py`, tiêu chí ghi trước trong script). Chỉ 1 trong 4 phép kiểm đạt: "Lịch sử" bền hơn DDColor ở ảnh hiện đại mức vừa (−0,63 ΔE, p đã hiệu chỉnh 0,003); ảnh hiện đại mức nặng không khác biệt; trên phim thì **kém bền hơn** (tăng sai số +2,35 ở mức vừa và +3,06 ở mức nặng so với DDColor). Trên phim, sai số của DDColor còn giảm khi ảnh phai (11,37 → 9,92), nhiều khả năng vì đầu ra nhạt hơn nên gần màu phim cũ hơn; đây là giải thích suy ra từ số đo, chưa kiểm chứng.
+
+**Hiệu năng** (RTX 3050 6 GB, ảnh 640 px, đầu ra thô, chưa tính SAM; 15 ảnh sau khởi động): VietColorNet 54 ms/ảnh, 48,6 triệu tham số, 373 MB VRAM đỉnh; DDColor gốc 133 ms/ảnh, 55,0 triệu tham số, 430 MB.
+
+**Thử chưng cất để giảm ám màu (không thay đổi hệ thống).** Hai lần tinh chỉnh "Lịch sử" bằng chưng cất từ DDColor gốc, bỏ màu phim ViCoW khỏi mục tiêu, trọng số chưng cất 0,6 và 0,95 (`configs/vietcolornet_natural_distill*.json`), không cải thiện các chỉ số ám màu và không kéo mô hình lại gần DDColor (sai số L1 so với thầy 0,0744 → 0,0753; mất mát huấn luyện gần như không đổi). Cả hai bản bị loại.
+
+**Kết luận.** VietColorNet nhẹ hơn và nhanh hơn DDColor gốc (gấp 2,5 lần), giảm sai số màu tại biên và ΔE so với màu phim Việt Nam trên ảnh sạch, nhưng người xem thấy màu của DDColor gốc tự nhiên hơn, và VietColorNet không bền hơn với ảnh xuống cấp. Đóng góp bền vững của dự án nằm ở protocol chia theo phim (phát hiện rò rỉ ViCoW), quy trình đánh giá có kiểm định thống kê, và hệ thống chạy được cho ảnh tư liệu Việt Nam. Khi cần màu tự nhiên nhất, chọn "DDColor gốc" trong menu.
+
 ## Thay checkpoint vận hành
 
 Hệ thống chạy dưới dạng ứng dụng web: giao diện tùy biến FastAPI bằng `python server.py --open-browser` (cổng 8000) hoặc giao diện Gradio bằng `demo.py`; không còn bản cài đặt Windows. Khi thay checkpoint baseline DDColor:
