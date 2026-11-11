@@ -1,11 +1,11 @@
 {
-  "criterion": "Pure baseline: the official DDColor-T weights (ImageNet), without any fine-tuning on Vietnamese data. The fine-tuned DDColor V6 is disabled and no longer used by the system.",
+  "criterion": "Pure baseline: the official DDColor-T weights (ImageNet) as published by the authors, without any fine-tuning on Vietnamese data.",
   "status": "baseline_v2",
   "winner": {
     "name": "ddcolor_official",
     "display_name": "DDColor gốc (Baseline)",
-    "checkpoint": "../../checkpoints/runs/ddcolor_official/best.pth",
-    "sha256": "0473493f492a30da1354c7f7f657deefbe65e67190f8bad1334647d70816cd3f",
+    "checkpoint": "../../checkpoints/pretrained/ddcolor_paper_tiny.pth",
+    "sha256": "176e5b126533128bf9e3f73ed71dc5647335ebd3c3dfc0df29f1cbc3e2120c48",
     "model": "ddcolor",
     "architecture": "convnext-t"
   }

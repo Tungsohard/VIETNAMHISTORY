@@ -12,6 +12,12 @@ from colorization.data import (ImageNetDataset, ImageNetVietnamReplayDataset,
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def needs_data(*files):
+    """Skip a test when its data files are missing (the data folder is not stored in Git)."""
+    missing = [f for f in files if not (ROOT / f).exists()]
+    return unittest.skipIf(bool(missing), "data not present: " + ", ".join(missing))
+
+
 class ProtocolTests(unittest.TestCase):
     def require_sources(self, manifest):
         """Skip image-loading checks when a protocol's raw source folders are not on this machine."""
@@ -19,6 +25,7 @@ class ProtocolTests(unittest.TestCase):
         if missing:
             self.skipTest(f"local source data not present: {', '.join(sorted(missing))}")
 
+    @needs_data('data/processed/protocol_manifest_v3.json')
     def test_official_validation_partition(self):
         manifest_path = ROOT / "data" / "processed" / "protocol_manifest_v3.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -29,12 +36,14 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(len(set(val.tolist()) & set(test.tolist())), 0)
         self.assertEqual(len(set(val.tolist()) | set(test.tolist())), 50000)
 
+    @needs_data('data/processed/protocol_manifest_v3.json')
     def test_all_splits_load(self):
         manifest = ROOT / "data" / "processed" / "protocol_manifest_v3.json"
         for split in ("train", "val", "test"):
             dataset = ImageNetDataset(manifest, split, image_size=64, limit=1)
             self.assertEqual(tuple(dataset[0]["rgb"].shape), (3, 64, 64))
 
+    @needs_data('data/processed/protocol_manifest_v3.json')
     def test_dataset_pickle_drops_open_memmaps(self):
         manifest = ROOT / "data" / "processed" / "protocol_manifest_v3.json"
         dataset = ImageNetDataset(manifest, "val", image_size=64, limit=2)
@@ -48,6 +57,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertIsNone(restored.official_array)
         self.assertEqual(restored[0]["id"], expected_id)
 
+    @needs_data('data/protocols/vietnam_protocol_v1/manifest.json')
     def test_vietnam_protocol_is_video_disjoint(self):
         manifest_path = ROOT / "data" / "protocols" / "vietnam_protocol_v1" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -67,6 +77,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertTrue(video_sets[1].isdisjoint(video_sets[2]))
         self.assertEqual(count, manifest["total_count"])
 
+    @needs_data('data/protocols/vietnam_protocol_v1/manifest.json', 'data/protocols/vietnam_protocol_v2/manifest.json')
     def test_wikimedia_protocol_preserves_frozen_evaluation(self):
         v1_path = ROOT / "data" / "protocols" / "vietnam_protocol_v1" / "manifest.json"
         v2_path = ROOT / "data" / "protocols" / "vietnam_protocol_v2" / "manifest.json"
@@ -80,6 +91,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertEqual(sha256(v2_path.parent / v2["splits"][split]["path"]),
                              v1["splits"][split]["sha256"])
 
+    @needs_data('data/protocols/vietnam_protocol_v2/manifest.json')
     def test_mixed_vietnam_training_sources_load(self):
         manifest_path = ROOT / "data" / "protocols" / "vietnam_protocol_v2" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -96,6 +108,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertEqual(sample["source"], source)
             self.assertEqual(tuple(sample["rgb"].shape), (3, 64, 64))
 
+    @needs_data('data/processed/protocol_manifest_v3.json', 'data/protocols/vietnam_protocol_v2/manifest.json')
     def test_imagenet_vietnam_replay_exposes_sources(self):
         imagenet = ImageNetDataset(ROOT / "data" / "processed" / "protocol_manifest_v3.json",
                                    "train", image_size=64, limit=2)
@@ -111,6 +124,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(dataset[0]["source"], "imagenet_replay")
         self.assertIn(dataset[2]["source"], {"vietnam_video", "wikimedia_commons"})
 
+    @needs_data('data/protocols/historical_vietnam_final_test_v1/manifest.json')
     def test_historical_final_test_is_frozen_and_balanced(self):
         manifest_path = ROOT / "data" / "protocols" / "historical_vietnam_final_test_v1" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -126,6 +140,7 @@ class ProtocolTests(unittest.TestCase):
         for relative, expected in manifest["frame_sha256"].items():
             self.assertEqual(sha256(manifest_path.parent / relative), expected)
 
+    @needs_data('data/protocols/vietnam_protocol_v3/manifest.json')
     def test_historical_adaptation_protocol_loads_all_sources(self):
         manifest_path = ROOT / "data" / "protocols" / "vietnam_protocol_v3" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

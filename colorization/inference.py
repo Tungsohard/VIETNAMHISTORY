@@ -13,8 +13,11 @@ from PIL import Image, ImageOps
 from .data import sha256
 from .enhance import MODES, modernize_ab, refine_ab, restore_luminance
 from .model import build_model
-from .runtime import load_checkpoint
+from .runtime import load_checkpoint, load_config
 from .temporal import TemporalABStabilizer
+
+
+OFFICIAL_DDCOLOR_CONFIG = Path(__file__).resolve().parents[1] / "configs" / "ddcolor_tiny.json"
 
 
 def _normalized_luminance(rgb, image_size, restore=0.0):
@@ -72,11 +75,15 @@ class ColorizationEngine:
         self.device = torch.device(requested_device)
 
         checkpoint = load_checkpoint(self.checkpoint_path)
-        self.config = dict(checkpoint["run_config"])
+        official = "run_config" not in checkpoint          # weights published by the DDColor authors
+        self.config = (load_config(OFFICIAL_DDCOLOR_CONFIG) if official else dict(checkpoint["run_config"]))
         self.image_size = int(self.config["image_size"])
         build_config = {**self.config, "pretrained_encoder": False}
         self.model = build_model(build_config)
-        self.model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+        if official:
+            self.model.load_official(self.checkpoint_path)
+        else:
+            self.model.load_state_dict(checkpoint["model_state_dict"], strict=False)
         self.model.to(self.device).eval()
         self._lock = threading.Lock()
         del checkpoint

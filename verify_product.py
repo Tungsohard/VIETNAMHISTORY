@@ -40,10 +40,12 @@ def main():
     if not checkpoint.is_absolute():
         checkpoint = (args.selection.resolve().parent / checkpoint).resolve()
     if not checkpoint.is_file():
-        raise FileNotFoundError(f"Product checkpoint not found: {checkpoint}")
+        sys.exit(f"DDColor weights not found: {checkpoint}\n"
+                 "Download them with: python scripts/prepare/download_ddcolor.py")
     actual_sha = sha256(checkpoint)
     if actual_sha != winner["sha256"]:
-        raise ValueError(f"Checkpoint SHA-256 mismatch: {actual_sha}")
+        sys.exit(f"DDColor weights have the wrong SHA-256 ({actual_sha}).\n"
+                 f"Expected {winner['sha256']}. Download them again with scripts/prepare/download_ddcolor.py")
 
     print(f"Selection: {args.selection}")
     print(f"Model: {winner.get('display_name', winner.get('name', 'DDColor'))}")
@@ -53,6 +55,13 @@ def main():
     print(f"CUDA available: {torch.cuda.is_available()}")
     if torch.cuda.is_available():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
+
+    models = ROOT / "checkpoints" / "models"
+    for name in ("vietcolornet_historical.pth", "vietcolornet_vivid.pth"):
+        status = "found" if (models / name).is_file() else "MISSING (the web page will run without this model)"
+        print(f"{name}: {status}")
+    sam = ROOT / "checkpoints" / "pretrained" / "sam"
+    print("SAM weights:", "found" if sam.is_dir() and any(sam.iterdir()) else "MISSING (run scripts/prepare/download_sam.py, or start with --no-sam)")
 
     if args.load_model:
         from colorization.inference import ColorizationEngine

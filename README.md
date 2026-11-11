@@ -21,23 +21,27 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests
 ```
 
-Dữ liệu và checkpoint không nằm trên Git vì quá nặng (dữ liệu hàng chục GB, mỗi checkpoint VietColorNet khoảng 400 MB). Trọng số công khai tải bằng:
+Một số test cần thư mục `data/` (không có trên Git) và tự bỏ qua khi thiếu nó, nên với bản clone mới kết quả bình thường là "OK (skipped=9)".
+
+Dữ liệu và checkpoint không nằm trên Git vì quá nặng (dữ liệu hàng chục GB, mỗi checkpoint VietColorNet khoảng 400 MB). Hai trọng số công khai tải được ngay:
 
 ```powershell
-python scripts/prepare/download_ddcolor.py        # DDColor-T (ddcolor_paper_tiny)
-python scripts/prepare/download_sam.py            # Segment Anything ViT-B
+python scripts/prepare/download_ddcolor.py        # DDColor-T, mô hình đối chứng
+python scripts/prepare/download_sam.py            # Segment Anything ViT-B, cho bước chống lem
 ```
 
-Hai checkpoint VietColorNet cần đặt ở `checkpoints/models/vietcolornet_historical.pth` và `vietcolornet_vivid.pth`. Checkpoint DDColor được đăng ký thành `checkpoints/runs/ddcolor_official` bằng `scripts/prepare/register_pretrained.py`, và `outputs/reports/baseline_selection.json` ghi đường dẫn cùng SHA-256 của nó. Sau đó:
+Hai file này có SHA-256 cố định; `outputs/reports/baseline_selection.json` ghi checksum của file DDColor, và `verify_product.py` đối chiếu nó. Chỉ với DDColor, trang web đã chạy được: menu khi đó chỉ có "DDColor gốc", và thêm `--no-sam` nếu chưa tải SAM.
 
 ```powershell
-python verify_product.py          # kiểm tra checkpoint và checksum
+python verify_product.py          # kiểm tra trọng số, báo mô hình nào đang thiếu
 python server.py --open-browser   # trang web tại http://127.0.0.1:8000
 ```
 
+Hai mô hình VietColorNet cần các file `checkpoints/models/vietcolornet_historical.pth` và `vietcolornet_vivid.pth`. Hai file này chưa được công bố cùng mã nguồn; có thể xin từ tác giả hoặc tự huấn luyện theo mục 7. Khi chúng có mặt, chúng tự xuất hiện trong menu, và "Lịch sử" trở thành mô hình mặc định.
+
 Có thể bấm đúp `start_demo.bat` thay cho lệnh thứ hai. `--no-sam` tắt bước chống lem (mỗi ảnh SAM thêm khoảng 4–6 giây trên RTX 3050), `--host 0.0.0.0` cho máy khác trong mạng LAN truy cập. Giao diện Gradio cũ vẫn chạy được bằng `python demo.py --open-browser`.
 
-Trang web có ba mô hình: **VietColorNet · Lịch sử** (mặc định), **VietColorNet · Tươi** và **DDColor gốc**, cùng ba chế độ xử lý: Hiện đại (mặc định), Rực rỡ (màu đậm hơn) và Nguyên bản (chỉ chống lem). Ảnh kết quả giữ độ phân giải ảnh gốc, tối đa 40 megapixel.
+Ba mô hình trong menu là **VietColorNet · Lịch sử** (mặc định khi có), **VietColorNet · Tươi** và **DDColor gốc**, cùng ba chế độ xử lý: Hiện đại (mặc định), Rực rỡ (màu đậm hơn) và Nguyên bản (chỉ chống lem). Ảnh kết quả giữ độ phân giải ảnh gốc, tối đa 40 megapixel.
 
 ## 2. Phương pháp
 
