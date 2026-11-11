@@ -1,103 +1,195 @@
-# Sắc Việt: tô màu ảnh tư liệu lịch sử Việt Nam
+# Sắc Việt: tô màu ảnh tư liệu lịch sử Việt Nam bằng học sâu
 
-Đây là đồ án khóa luận về tô màu ảnh đen trắng tư liệu lịch sử Việt Nam bằng học sâu. Chúng tôi tự thiết kế mạng **VietColorNet** và so sánh nó với **DDColor** (mô hình công bố sẵn của Kang và cộng sự, ICCV 2023) làm đối chứng. Kèm theo là một trang web nhỏ để thử tô màu ảnh.
+Ảnh và phim tư liệu về lịch sử Việt Nam phần lớn là đen trắng. Đồ án này xây dựng một mạng tô màu, **VietColorNet**, huấn luyện trên ảnh màu Việt Nam và khung hình phim tư liệu, rồi đánh giá nó so với **DDColor** (Kang và cộng sự, ICCV 2023), một mô hình công bố sẵn dùng làm đối chứng. Kèm theo là một trang web nhỏ để thử tô màu ảnh.
 
-Mạng làm việc trong không gian màu CIE Lab: nhận kênh sáng L của ảnh, dự đoán hai kênh màu a, b, rồi ghép lại với L gốc, nên độ phân giải và chi tiết sáng của ảnh được giữ nguyên.
+Ba câu hỏi mà đồ án cố trả lời:
 
-Kết luận ngắn gọn (số liệu ở mục Kết quả): VietColorNet nhẹ hơn và nhanh hơn DDColor khoảng 2,5 lần, ít sai màu hơn ở biên vật thể trên phim tư liệu, nhưng người xem thấy màu của DDColor gốc tự nhiên hơn. Màu cây cỏ và bầu trời vẫn là điểm yếu của cả hai.
+1. Huấn luyện thêm trên dữ liệu Việt Nam có giúp tô màu ảnh tư liệu Việt Nam tốt hơn một mô hình tổng quát không?
+2. Bước tách vật thể bằng Segment Anything (SAM) có làm màu bớt lem qua ranh giới vật thể không?
+3. Các kết luận có ổn định khi lặp lại huấn luyện và có đứng vững dưới kiểm định thống kê không?
 
-## Các mô hình
+Kết quả tóm tắt (chi tiết ở mục 5): VietColorNet nhỏ hơn và nhanh hơn DDColor khoảng 2,5 lần, và ít sai màu hơn ở vùng biên vật thể trên phim tư liệu. Tuy vậy 11 người tham gia khảo sát chọn màu của DDColor là tự nhiên hơn (73% số lần), và các độ đo sai số không cho thấy SAM có tác dụng. Màu cây cỏ và bầu trời vẫn là điểm yếu của cả hai mô hình.
 
-Trang web có ba mô hình để chọn:
+## 1. Chạy thử
 
-- **VietColorNet · Lịch sử** (mặc định): `checkpoints/models/vietcolornet_historical.pth`, 384 px. Huấn luyện thêm trên ảnh màu hiện đại Việt Nam, ảnh quân đội và khung hình phim tư liệu ViCoW.
-- **VietColorNet · Tươi**: `checkpoints/models/vietcolornet_vivid.pth`. Bản không dùng phim tư liệu, màu đậm hơn nhưng ám vàng nâu nhiều hơn. Giữ làm đối chứng.
-- **DDColor gốc**: trọng số công bố, không tinh chỉnh, khai báo trong `outputs/reports/baseline_selection.json` (có kiểm tra SHA-256).
-
-Ngoài ra có pipeline suy luận (`colorization/enhance.py`, `colorization/segmentation.py`): phục hồi độ sáng, làm mịn màu theo vùng, dùng Segment Anything (SAM) tách vật thể để màu không tràn qua ranh giới, rồi khử ám màu. Pipeline này áp dụng cho VietColorNet.
-
-## Kiến trúc VietColorNet
-
-Mã nằm trong `colorization/model.py`. Các phần chính:
-
-1. Bộ mã hóa ResNet-34 (trọng số ImageNet của torchvision).
-2. Nhánh biên dùng toán tử Scharr khả vi, giúp giữ ranh giới vật thể.
-3. Strip pooling để lấy ngữ cảnh theo chiều ngang và dọc.
-4. Bộ giải mã có cổng biên: thông tin biên điều tiết đặc trưng khi giải mã.
-5. Chú ý bảng màu (CPCA): các truy vấn màu học được đưa ngữ cảnh màu vào bộ giải mã.
-6. Đầu ra tách hướng màu và độ đậm (chroma), có hiệu chỉnh chroma theo vùng và theo ảnh.
-7. Cầu nối ngữ nghĩa DINOv2-S/14 (đóng băng).
-
-Các thành phần bên ngoài: ResNet-34, DINOv2 và SAM ViT-B đều là mô hình công khai (xem cuối file). Chúng không phải mô hình tô màu.
-
-## Dữ liệu
-
-| Nguồn | Dùng để |
-|---|---|
-| Viet-Cultural-VQA, KTVIC | ảnh màu hiện đại Việt Nam (train, validation, test) |
-| Wikimedia Commons | ảnh Việt Nam có giấy phép, giữ thông tin tác giả trong `attribution.csv` |
-| Ảnh quân đội Việt Nam (Wikimedia) | train, 667 ảnh sau khi lọc cờ, huy hiệu, bản đồ, ảnh đen trắng |
-| ImageNet chọn lọc (64×64) | train, 36.797 ảnh của 32 lớp quân sự và cảnh Việt Nam |
-| ViCoW, 4 phim tư liệu | train, validation và test lịch sử |
-
-Bản huấn luyện cuối dùng 62.172 ảnh train, 1.025 ảnh validation và 1.193 ảnh test (757 ảnh hiện đại và 436 khung phim).
-
-**Cách chia ViCoW.** Cách chia gốc (1.327/187/382) chia ngẫu nhiên theo khung hình, và cả bốn phim đều có mặt ở mọi tập. Chúng tôi thấy 75% khung test (288/382) có một khung train cách không quá 2 khung hình trong cùng phim, nên điểm số bị thổi phồng. Vì vậy dự án chia theo phim: train trên *Những người viết huyền thoại* và *Vào Nam ra Bắc*, validation trên *Mùi cỏ cháy*, test trên *Hà Nội 12 ngày đêm*. Khung train được làm nét nhẹ và căn lại màu theo biên (`scripts/prepare/correct_vicow_colors.py`); validation và test giữ nguyên.
-
-Màu "thật" của phim ViCoW là màu của phim cũ (nhạt hơn nhiều so với ảnh hiện đại), nên điểm trên phim đo độ giống phim cũ, không đo độ đẹp hay độ thật.
-
-Dữ liệu không nằm trên Git (hàng chục GB). Cách chuẩn bị từng nguồn ghi trong `data/sources/README.md` và các script ở `scripts/prepare/`.
-
-## Cài đặt
-
-Cần Python 3.11 và GPU NVIDIA có CUDA (đã thử trên RTX 3050 Laptop 6 GB).
+Cần Python 3.11 và GPU NVIDIA có CUDA (đã thử trên RTX 3050 Laptop 6 GB). Tạo môi trường, cài PyTorch bản CUDA từ pytorch.org, rồi:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-Cài PyTorch và TorchVision bản có CUDA từ trang pytorch.org trước, sau đó:
-
-```powershell
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests
 ```
 
-Checkpoint không nằm trên Git. Trọng số DDColor và SAM tải bằng:
+Dữ liệu và checkpoint không nằm trên Git vì quá nặng (dữ liệu hàng chục GB, mỗi checkpoint VietColorNet khoảng 400 MB). Trọng số công khai tải bằng:
 
 ```powershell
-python scripts/prepare/download_ddcolor.py --model ddcolor_paper
-python scripts/prepare/download_sam.py
+python scripts/prepare/download_ddcolor.py        # DDColor-T (ddcolor_paper_tiny)
+python scripts/prepare/download_sam.py            # Segment Anything ViT-B
 ```
 
-Hai checkpoint VietColorNet phải được đặt vào `checkpoints/models/` (xem phần Các mô hình). `verify_product.py` kiểm tra checkpoint và checksum còn thiếu trước khi chạy ứng dụng.
-
-## Chạy ứng dụng
+Hai checkpoint VietColorNet cần đặt ở `checkpoints/models/vietcolornet_historical.pth` và `vietcolornet_vivid.pth`. Checkpoint DDColor được đăng ký thành `checkpoints/runs/ddcolor_official` bằng `scripts/prepare/register_pretrained.py`, và `outputs/reports/baseline_selection.json` ghi đường dẫn cùng SHA-256 của nó. Sau đó:
 
 ```powershell
-python verify_product.py
-python server.py --open-browser
+python verify_product.py          # kiểm tra checkpoint và checksum
+python server.py --open-browser   # trang web tại http://127.0.0.1:8000
 ```
 
-Trang web mở ở `http://127.0.0.1:8000`; cũng có thể bấm đúp `start_demo.bat`. Tùy chọn: `--host 0.0.0.0` để máy khác trong LAN truy cập, `--no-sam` để tắt chống lem (mỗi ảnh SAM mất khoảng 4–6 giây trên RTX 3050), `--checkpoint` để dùng checkpoint VietColorNet khác.
+Có thể bấm đúp `start_demo.bat` thay cho lệnh thứ hai. `--no-sam` tắt bước chống lem (mỗi ảnh SAM thêm khoảng 4–6 giây trên RTX 3050), `--host 0.0.0.0` cho máy khác trong mạng LAN truy cập. Giao diện Gradio cũ vẫn chạy được bằng `python demo.py --open-browser`.
 
-Giao diện Gradio cũ vẫn còn: `python demo.py --open-browser` (cổng 7860).
+Trang web có ba mô hình: **VietColorNet · Lịch sử** (mặc định), **VietColorNet · Tươi** và **DDColor gốc**, cùng ba chế độ xử lý: Hiện đại (mặc định), Rực rỡ (màu đậm hơn) và Nguyên bản (chỉ chống lem). Ảnh kết quả giữ độ phân giải ảnh gốc, tối đa 40 megapixel.
 
-Ba chế độ xử lý: Hiện đại (mặc định: phục hồi, tô màu, chống lem, khử ám màu và tăng độ tươi), Rực rỡ (màu đậm hơn) và Nguyên bản (chỉ chống lem). Ảnh kết quả giữ độ phân giải gốc, tối đa 40 megapixel.
+## 2. Phương pháp
 
-## Huấn luyện và đánh giá
+### 2.1 Bài toán
 
-Chuẩn bị ImageNet và huấn luyện các baseline:
+Mạng làm việc trong không gian màu CIE Lab. Đầu vào là kênh độ sáng L của ảnh xám, đầu ra là hai kênh màu a và b. Ảnh màu được dựng lại từ L gốc và ab dự đoán, nên độ phân giải và chi tiết sáng của ảnh đầu vào không đổi. Một ảnh xám có nhiều cách tô màu hợp lý, nên mạng chỉ cần cho ra một màu hợp lý, và việc chấm điểm so với ảnh màu gốc chỉ là một thước đo gần đúng (xem mục 6).
+
+### 2.2 Kiến trúc VietColorNet
+
+Mã nguồn ở `colorization/model.py`. Mạng gồm:
+
+- bộ mã hóa ResNet-34 (trọng số ImageNet của torchvision) cho đặc trưng ngữ nghĩa nhiều mức;
+- nhánh biên dùng toán tử Scharr khả vi, và bộ giải mã có cổng biên, trong đó thông tin biên điều tiết đặc trưng khi giải mã, nhằm giữ ranh giới vật thể;
+- strip pooling để gom ngữ cảnh theo chiều ngang và dọc;
+- khối chú ý bảng màu (CPCA), trong đó các truy vấn màu học được đưa ngữ cảnh màu vào bộ giải mã;
+- đầu ra tách hướng màu và độ đậm (chroma), có hiệu chỉnh chroma theo vùng và theo ảnh;
+- cầu nối ngữ nghĩa DINOv2-S/14, đóng băng, thêm đặc trưng ngữ nghĩa cho bộ giải mã.
+
+ResNet-34, DINOv2 và SAM là các mô hình công khai có sẵn, không phải mô hình tô màu. Phần dự đoán màu (nhánh biên, CPCA, bộ giải mã, đầu ra) do nhóm thiết kế.
+
+### 2.3 Hai mô hình VietColorNet
+
+Hai mô hình dùng chung kiến trúc và khác nhau ở dữ liệu huấn luyện. "Tươi" (`vietcolornet_vivid.pth`) được huấn luyện trên ảnh màu hiện đại Việt Nam, ảnh quân đội và một tập con ImageNet, qua nhiều vòng thực nghiệm trước đó (các config V6 refined, V8, V9, V10, V12 vẫn ở `configs/`). "Lịch sử" (`vietcolornet_historical.pth`) khởi tạo từ "Tươi" rồi tinh chỉnh thêm với khung hình phim tư liệu.
+
+Tinh chỉnh "Lịch sử" chạy ở 384 px, BF16, batch hiệu dụng 16, tốc độ học 1,5×10⁻⁵, tối đa 6 epoch, 6.000 mẫu mỗi epoch, với trọng số lấy mẫu: Viet-Cultural-VQA 0,36, ImageNet chọn lọc 0,18, ảnh quân đội 0,16, KTVIC 0,15, ViCoW 0,10, Wikimedia 0,05. Huấn luyện dừng sớm sau epoch 3 vì điểm validation (cân bằng theo nguồn, không tính tập ViCoW validation) không cải thiện trong 3 epoch liên tiếp, và epoch 3 là bản được phát hành: nó có loss thấp nhất trên phim validation, dù điểm tổng hợp không vượt checkpoint xuất phát.
+
+### 2.4 Pipeline suy luận
+
+Ngoài đầu ra thô của mạng, hệ thống có các bước tùy chọn (`colorization/enhance.py`, `colorization/segmentation.py`): phục hồi kênh L (khử nhiễu, kéo dải sáng, làm nét), làm mịn màu theo vùng siêu điểm ảnh (mỗi vùng lấy màu từ lõi của nó và chỉ mượn từ vùng lân cận cùng độ sáng), dùng SAM tách vật thể để màu không được mượn qua ranh giới vật thể, rồi khử ám màu ở vùng gần trung tính và tăng nhẹ độ tươi. Khi đánh giá, các bước này chỉ bật ở những thí nghiệm nêu rõ; mặc định đánh giá đầu ra thô để chênh lệch giữa các mô hình đến từ mạng.
+
+## 3. Dữ liệu
+
+| Nguồn | Vai trò |
+|---|---|
+| Viet-Cultural-VQA, KTVIC | ảnh màu hiện đại Việt Nam (train, validation, test) |
+| Wikimedia Commons | ảnh Việt Nam có giấy phép; tác giả và giấy phép ghi trong `attribution.csv` |
+| Ảnh quân đội Việt Nam (Wikimedia) | train; 667 ảnh sau khi bỏ cờ, huy hiệu, bản đồ, giấy tờ và ảnh đen trắng |
+| ImageNet chọn lọc, 64×64 | train; 36.797 ảnh của 32 lớp quân sự và cảnh Việt Nam |
+| ViCoW (4 phim tư liệu) | train, validation và test lịch sử |
+
+Bản huấn luyện của "Lịch sử" dùng 62.172 ảnh train, 1.025 ảnh validation và 1.193 ảnh test (757 ảnh hiện đại và 436 khung phim). Ảnh trùng và gần trùng (dHash) đã được loại. Cách chuẩn bị từng nguồn ghi ở `data/sources/README.md`.
+
+**Cách chia ViCoW.** Cách chia gốc của bộ này (1.327/187/382) chia ngẫu nhiên theo khung hình và cả bốn phim đều có mặt ở mọi tập. Chúng tôi kiểm tra và thấy 288 trong 382 khung test (75%) có một khung train cách nó không quá 2 khung hình trong cùng phim, tức là test gần như bị lộ. Vì vậy dự án chia theo phim: train trên *Những người viết huyền thoại* và *Vào Nam ra Bắc*, validation trên *Mùi cỏ cháy*, test trên *Hà Nội 12 ngày đêm*. Khung train được làm nét nhẹ và căn lại màu theo biên (`scripts/prepare/correct_vicow_colors.py`) vì chúng được phóng từ video độ phân giải thấp; validation và test giữ nguyên bản gốc.
+
+Màu "đáp án" của phim ViCoW là màu của phim cũ, nhạt hơn nhiều so với ảnh hiện đại (độ đậm khoảng 9–10 so với 17–19). Điểm trên phim vì thế đo mức giống màu phim cũ, chứ không phải mức đẹp hay mức thật.
+
+## 4. Thiết lập đánh giá
+
+**Quy trình.** Mỗi ảnh test được đổi thành ảnh chỉ còn kênh sáng, tô màu, rồi so với ảnh màu gốc. Ảnh được thu nhỏ để cạnh dài không quá 640 px.
+
+**Độ đo** (đều thấp hơn là tốt):
+
+- ΔE2000: sai khác màu CIEDE2000 trung bình theo ảnh;
+- AB-MAE: sai số tuyệt đối trung bình của hai kênh a, b;
+- sai số tại biên: AB-MAE tính trong vùng giãn 5×5 quanh biên Canny của kênh L. Đây là đại lượng thay thế cho hiện tượng lem màu, nhưng nó cũng chịu ảnh hưởng của việc màu nhìn chung giống đáp án đến đâu, nên không đo riêng được việc lem.
+
+**Thống kê.** Khoảng tin cậy 95% lấy bằng bootstrap (5.000 lần). Với phim, các khung liền nhau tương quan mạnh nên lấy mẫu theo khối 12 khung. Chênh lệch giữa hai mô hình tính theo cặp trên cùng ảnh, kiểm định bằng hoán vị theo khối (20.000 lần), có hiệu chỉnh Holm khi so nhiều cặp. Kiểm định Wilcoxon cũng được tính nhưng không dùng để kết luận, vì nó coi các khung liền nhau là độc lập và cho p nhỏ quá mức. Để biết kết quả có ổn định không, bước tinh chỉnh cuối của "Lịch sử" được lặp lại với ba seed (2026, 1 và 2).
+
+**Khảo sát người xem.** 20 ảnh gồm 5 ảnh tư liệu, 8 khung phim chưa thấy và 7 ảnh hiện đại. Mỗi ảnh có ba bản tô màu của ba mô hình, xáo thứ tự ngẫu nhiên và ẩn tên, và người xem chọn bản có màu tự nhiên và thật nhất. Khoảng tin cậy lấy bootstrap theo người tham gia, vì 20 câu trả lời của cùng một người không độc lập.
+
+**Đối chứng.** DDColor-T (ConvNeXt-T, ảnh 256 px) với trọng số công bố, không tinh chỉnh.
+
+## 5. Kết quả
+
+### 5.1 Sai số màu và độ ổn định theo seed
+
+Trung bình ± độ lệch chuẩn của ba seed, đầu ra thô. Seed phát hành (2026) là seed tốt nhất trong ba (ΔE 9,56 trên phim), nên con số đại diện là trung bình.
+
+| Tập | Độ đo | Lịch sử | Tươi | DDColor gốc |
+|---|---|---|---|---|
+| Phim chưa thấy (436 khung) | ΔE2000 | 10,21 ± 0,57 | 11,03 | 11,43 |
+| | sai số tại biên | 8,31 ± 0,58 | 10,22 | 12,08 |
+| Ảnh hiện đại (757 ảnh) | ΔE2000 | 12,39 ± 0,29 | 12,61 | 11,77 |
+| | sai số tại biên | 12,50 ± 0,15 | 12,75 | 12,91 |
+
+Trên phim, sai số tại biên của "Lịch sử" thấp hơn DDColor ở cả ba seed (thấp hơn 3,2 đến 4,4, p đã hiệu chỉnh khoảng 0,0005), và thấp hơn "Tươi" ở cả ba seed. Về ΔE trên phim, lợi thế so với DDColor còn đó nhưng ở mức biên với hai seed (p = 0,03), và so với "Tươi" thì hai trong ba seed không đạt ý nghĩa. Trên ảnh hiện đại, DDColor có ΔE thấp hơn ở cả ba seed. Độ lệch giữa các seed chỉ phản ánh bước tinh chỉnh cuối, vì "Tươi" dùng chung nên chưa được lặp lại.
+
+### 5.2 Tác dụng của hậu xử lý và SAM
+
+Cùng ba mô hình, cùng tập test, ΔE2000 của một seed (2026):
+
+| Tập | Cấu hình | Lịch sử | Tươi | DDColor gốc |
+|---|---|---|---|---|
+| Phim | thô | 9,56 | 11,03 | 11,43 |
+| | + hậu xử lý | 9,44 | 10,93 | 11,07 |
+| | + hậu xử lý + SAM | 9,51 | 11,03 | 11,18 |
+| Ảnh hiện đại | thô | 12,19 | 12,61 | 11,77 |
+| | + hậu xử lý | 12,16 | 12,57 | 11,60 |
+| | + hậu xử lý + SAM | 12,15 | 12,58 | 11,48 |
+
+Hậu xử lý cải thiện nhẹ cả ba mô hình và không đổi thứ hạng. SAM không làm giảm ΔE hay sai số tại biên (sai số biên của "Lịch sử" trên phim nhích từ 7,72 lên 7,83). Hai độ đo này không phát hiện được tác dụng của SAM, nhưng cũng chưa đủ để kết luận nó vô ích, vì chúng không đo riêng việc lem màu.
+
+### 5.3 Khảo sát người xem
+
+11 người xem (hai người đầu làm bản có thêm một câu hỏi về lem màu, không dùng ở đây).
+
+| Mô hình | Được chọn | Khoảng tin cậy 95% |
+|---|---|---|
+| DDColor gốc | 73,2% | 63,2% – 81,4% |
+| VietColorNet · Tươi | 15,9% | 11,4% – 21,4% |
+| VietColorNet · Lịch sử | 10,9% | 5,5% – 17,3% |
+
+DDColor được chọn nhiều nhất ở cả ba nhóm ảnh (tư liệu 65%, phim 75%, hiện đại 77%), và 10 trong 11 người chọn nó ở 60–90% số ảnh. Kết quả này ngược với ΔE trên phim, và khớp với lưu ý ở mục 3: ΔE trên phim đo mức giống màu phim cũ. Hạn chế của khảo sát: 11 người quen biết, mẫu nhỏ; vị trí A/B/C chưa cân bằng hoàn toàn (DDColor chỉ nằm ở vị trí A trong 2 ảnh, nhưng vẫn được chọn nhiều nhất ở cả ba vị trí); và ảnh dùng chế độ Nguyên bản chứ không phải chế độ Hiện đại mặc định của trang web.
+
+### 5.4 Ám màu
+
+Đo trên 757 ảnh hiện đại, đầu ra thô, trên từng lớp màu của ảnh gốc: vùng xám (độ đậm thật dưới 5), cây cỏ, bầu trời, và da. Số dương nghĩa là lệch về phía vàng, hoặc mất màu xanh.
+
+| Chỉ số | Lịch sử | Tươi | DDColor gốc |
+|---|---|---|---|
+| Vùng xám, b* (đúng bằng 0) | +6,2 | +7,8 | +4,4 |
+| Cây cỏ, lệch a* | +20,2 | +21,1 | +18,4 |
+| Bầu trời, lệch b* | +26,4 | +28,9 | +21,1 |
+| Da, độ đậm so với thật (đúng bằng 1) | 0,77 | 0,90 | 1,04 |
+
+Cả ba mô hình đều làm cây cỏ và bầu trời mất màu xanh, và da do VietColorNet tô nhạt hơn thật. Mặt nạ da ước lượng theo màu nên lẫn cả vật không phải da, vì vậy con số về da chỉ gần đúng.
+
+### 5.5 Độ bền với ảnh xuống cấp và hiệu năng
+
+Ảnh test được làm xuống cấp theo ba mức (nhẹ, vừa, nặng) bằng cách làm mờ, thêm nhiễu hạt, giảm tương phản, thêm vết xước dọc và nén JPEG mạnh; sai số được chấm chỉ trên màu (độ sáng dự đoán được thay bằng độ sáng thật). Tiêu chí được đặt trước khi chạy: "Lịch sử" bền hơn DDColor nếu ở mức vừa và nặng, trên mỗi tập, sai số tăng ít hơn và khoảng tin cậy của chênh lệch loại được 0 (4 phép kiểm). Chỉ một phép đạt: ảnh hiện đại, mức vừa (−0,63 ΔE, p = 0,003). Ảnh hiện đại mức nặng không khác biệt, và trên phim "Lịch sử" kém bền hơn (sai số tăng thêm +2,35 ở mức vừa và +3,06 ở mức nặng so với DDColor). Trên phim, sai số của DDColor còn giảm khi ảnh phai (11,37 → 9,92), có thể vì đầu ra của nó nhạt đi và gần màu phim cũ hơn; đây là suy đoán từ số đo, chưa kiểm chứng.
+
+Về hiệu năng (RTX 3050 6 GB, ảnh 640 px, đầu ra thô, chưa tính SAM): VietColorNet cần 54 ms mỗi ảnh với 48,6 triệu tham số và 373 MB VRAM đỉnh; DDColor cần 133 ms với 55,0 triệu tham số và 430 MB.
+
+## 6. Thảo luận và giới hạn
+
+Câu hỏi 1: huấn luyện thêm trên dữ liệu Việt Nam giúp VietColorNet gần màu phim tư liệu hơn và giảm sai số ở biên trên phim, nhưng không làm cho màu tự nhiên hơn trong mắt người xem. Chúng tôi từng thử giảm ám màu bằng cân bằng màu hiếm và đầu ra phân loại màu, nhưng không cải thiện được. Câu hỏi 2: các độ đo hiện có không chứng minh được tác dụng của SAM, và khảo sát không hỏi riêng về lem màu, nên câu hỏi này vẫn mở. Câu hỏi 3: kết luận về sai số tại biên ổn định giữa các seed, còn kết luận về ΔE giữa hai mô hình VietColorNet thì không.
+
+Những điều cần cân nhắc khi đọc các con số trên:
+
+- Ảnh đen trắng không lưu thông tin màu, nên kết quả là màu hợp lý, không phải màu lịch sử xác thực. Quân phục, cờ và trang phục đặc biệt dễ sai vì đỏ, xanh đậm và nâu có cùng độ sáng trên ảnh xám.
+- Ảnh lịch sử không có đáp án màu độc lập. Điểm trên phim ViCoW so với màu phim cũ, không so với màu thật.
+- Màu cây cỏ và bầu trời vẫn mất xanh ở cả hai mô hình VietColorNet, và da bị tô nhạt.
+- DDColor không học dữ liệu Việt Nam còn VietColorNet có, nên đây không phải so sánh cùng ngân sách huấn luyện; ImageNet trong dữ liệu train chỉ có độ phân giải 64×64 rồi phóng lên 384 px.
+- Phim *Hà Nội 12 ngày đêm* từng là development test ở các phiên bản đầu; từ phiên bản V9 trở đi nó không được dùng để huấn luyện hay chọn mô hình, nhưng kết quả trên nó vẫn mang tính development.
+- Số seed (ba) và số người khảo sát (11) đều nhỏ.
+- Ảnh hư hỏng nặng, mất mảng hoặc xước lớn cần thêm bước phục hồi riêng; chưa đo tính nhất quán theo thời gian khi tô video.
+
+Điểm có thể dùng lại của đồ án nằm ở phương pháp: phát hiện việc cách chia ngẫu nhiên theo khung hình làm lộ test, cách chia theo phim, và quy trình đánh giá có khoảng tin cậy, kiểm định theo khối và độ lệch theo seed.
+
+## 7. Tái lập
+
+Các lệnh dưới đây chạy từ thư mục gốc, với dữ liệu và checkpoint đã chuẩn bị theo `data/sources/README.md`.
+
+Huấn luyện baseline ImageNet và chạy thử nhanh (kết quả của lần chạy thử không dùng để chọn mô hình):
 
 ```powershell
 python scripts/prepare/prepare_data.py
 python train.py --config configs/resnet34.json --output checkpoints/runs/resnet34
+python train.py --config configs/ddcolor_smoke.json --output checkpoints/runs/smoke --train-limit 16 --val-limit 8
 ```
 
-Huấn luyện thử nhanh để kiểm tra pipeline (kết quả không dùng để chọn mô hình): thêm `--train-limit 16 --val-limit 8` vào lệnh trên với `configs/ddcolor_smoke.json`.
-
-Huấn luyện "Lịch sử" từ checkpoint "Tươi":
+Tinh chỉnh "Lịch sử" từ "Tươi":
 
 ```powershell
 python scripts/prepare/correct_vicow_colors.py
@@ -108,121 +200,52 @@ python fine_tune_vietnam.py `
   --imagenet-manifest data/processed/imagenet_targeted_v10.json `
   --source-checkpoint checkpoints/models/vietcolornet_vivid.pth `
   --output checkpoints/runs/vietcolornet_v15_vicow
+python scripts/evaluate/seed_runs.py 1 2        # hai seed còn lại; dùng epoch_03.pth
 ```
 
-Mỗi epoch mất khoảng 12 phút trên GPU 6 GB; nên đóng các ứng dụng khác dùng GPU. "Tươi" là kết quả của các vòng huấn luyện trước đó; config của các vòng này (V6 refined, V8, V9, V10, V12) vẫn ở `configs/`.
+Mỗi epoch mất khoảng 12 phút trên GPU 6 GB; nên đóng các ứng dụng khác dùng GPU.
 
-Đánh giá (đều chạy trên ảnh chỉ còn kênh sáng, so với màu gốc):
+Đánh giá:
 
 ```powershell
-# so sánh nhanh nhiều checkpoint
 python scripts/evaluate/compare_checkpoints.py --set modern-test --set vicow-test `
   vivid=checkpoints/models/vietcolornet_vivid.pth historical=checkpoints/models/vietcolornet_historical.pth
-
-# khoảng tin cậy bootstrap, kiểm định cặp, so với DDColor gốc
 python scripts/evaluate/statistical_comparison.py `
   historical=checkpoints/models/vietcolornet_historical.pth ddcolor=@selection
-
-# độ lệch theo seed huấn luyện
-python scripts/evaluate/seed_runs.py 1 2
-
-# ám màu (da, vùng xám, cây, trời) và độ bền với ảnh xuống cấp
 python scripts/evaluate/colour_cast.py historical=checkpoints/models/vietcolornet_historical.pth ddcolor=@selection
 python scripts/evaluate/degradation_robustness.py historical=checkpoints/models/vietcolornet_historical.pth ddcolor=@selection
 ```
 
-Khảo sát người dùng: `scripts/evaluate/user_study/build_study.py` dựng trang so sánh mù (thêm `--form-url` và `--form-entry` để câu trả lời tự gửi về một Google Form), `analyze_study.py` phân tích file JSON hoặc file CSV xuất từ form.
+`statistical_comparison.py` nhận thêm `--mode natural --sam` để bật hậu xử lý và SAM giống nhau cho mọi mô hình. Khảo sát người xem: `scripts/evaluate/user_study/build_study.py` dựng trang so sánh mù (kèm `--form-url` và `--form-entry` thì câu trả lời tự gửi về một Google Form), và `analyze_study.py` phân tích file JSON hoặc CSV xuất từ form. Các báo cáo số liệu nằm trong `outputs/reports/`.
 
-## Kết quả
+`evaluate.py` và `train.py` thuộc giai đoạn baseline ImageNet ban đầu (`evaluate.py` đọc một file `model_selection.json` của giai đoạn đó) và chưa được kiểm tra lại với cấu trúc hiện tại.
 
-Tất cả số liệu dưới đây đo trên tập test, ảnh tối đa 640 px, đầu vào chỉ có kênh sáng. Báo cáo đầy đủ nằm trong `outputs/reports/`.
-
-### So sánh theo sai số màu (3 seed huấn luyện)
-
-Khoảng tin cậy 95% lấy bootstrap theo khối (12 khung liền nhau của một phim tính là một khối), kiểm định hoán vị theo khối có hiệu chỉnh Holm. "Lịch sử" được huấn luyện lại với ba seed (2026, 1, 2); bảng ghi trung bình ± độ lệch chuẩn. Seed phát hành (2026) là seed tốt nhất trong ba (ΔE 9,56 trên phim), nên nên dùng số trung bình.
-
-| Tập | Độ đo (thấp hơn là tốt) | Lịch sử | Tươi | DDColor gốc |
-|---|---|---|---|---|
-| Phim chưa thấy (436) | ΔE2000 | 10,21 ± 0,57 | 11,03 | 11,43 |
-| | sai số tại biên | 8,31 ± 0,58 | 10,22 | 12,08 |
-| Ảnh hiện đại (757) | ΔE2000 | 12,39 ± 0,29 | 12,61 | 11,77 |
-| | sai số tại biên | 12,50 ± 0,15 | 12,75 | 12,91 |
-
-Trên phim, "Lịch sử" thấp hơn DDColor gốc về sai số tại biên ở cả ba seed (thấp hơn 3,2 đến 4,4), đó là kết quả ổn định nhất. Về ΔE trên phim, lợi thế so với DDColor chỉ ở mức biên với hai seed (p = 0,03), và so với "Tươi" thì hai trong ba seed không đạt ý nghĩa. Trên ảnh hiện đại, DDColor gốc có ΔE thấp hơn ở cả ba seed. Độ lệch giữa seed chỉ phản ánh bước tinh chỉnh cuối; checkpoint xuất phát dùng chung nên chưa được lặp lại.
-
-Hậu xử lý giúp cả ba mô hình một chút và không đổi thứ hạng. SAM không làm giảm ΔE hay sai số tại biên, nên các độ đo này không chứng minh được lợi ích của SAM.
-
-### Khảo sát người dùng
-
-11 người xem 20 ảnh (5 ảnh tư liệu, 8 khung phim, 7 ảnh hiện đại), mỗi ảnh có ba bản tô màu xáo thứ tự ẩn danh và chọn bản có màu tự nhiên và thật nhất. Cả ba cùng pipeline.
-
-| Mô hình | Được chọn | Khoảng tin cậy 95% |
-|---|---|---|
-| DDColor gốc | 73,2% | 63,2% – 81,4% |
-| VietColorNet · Tươi | 15,9% | 11,4% – 21,4% |
-| VietColorNet · Lịch sử | 10,9% | 5,5% – 17,3% |
-
-DDColor gốc được chọn nhiều nhất ở cả ba nhóm ảnh, và 10 trên 11 người chọn nó ở 60–90% số ảnh. Hạn chế: 11 người quen nhau, vị trí A/B/C chưa cân bằng hoàn toàn, và khảo sát dùng chế độ Nguyên bản chứ không phải chế độ Hiện đại mặc định của trang web. Khảo sát không đo riêng việc lem màu.
-
-### Ám màu và da (757 ảnh hiện đại, đầu ra thô)
-
-Số dương nghĩa là lệch về phía vàng, hoặc mất màu xanh.
-
-| Chỉ số | Lịch sử | Tươi | DDColor gốc |
-|---|---|---|---|
-| Vùng xám, b* (đúng bằng 0) | +6,2 | +7,8 | +4,4 |
-| Cây cỏ, lệch a* | +20,2 | +21,1 | +18,4 |
-| Bầu trời, lệch b* | +26,4 | +28,9 | +21,1 |
-| Da, độ đậm so với thật (đúng bằng 1) | 0,77 | 0,90 | 1,04 |
-
-Cả ba mô hình đều làm cây cỏ và bầu trời mất màu xanh; da của VietColorNet nhạt hơn thật. Mặt nạ da ước lượng theo màu nên lẫn cả vật không phải da.
-
-### Độ bền với ảnh xuống cấp và hiệu năng
-
-Khi đầu vào bị làm mờ, thêm nhiễu hạt, phai tương phản, xước và nén JPEG mạnh, "Lịch sử" bền hơn DDColor ở ảnh hiện đại mức vừa nhưng không bền hơn ở mức nặng, và kém bền hơn trên phim (tăng sai số +2,35 ở mức vừa, +3,06 ở mức nặng so với DDColor). Trên phim, sai số của DDColor còn giảm khi ảnh phai, nhiều khả năng vì đầu ra nhạt hơn nên gần màu phim cũ hơn; đây là suy luận từ số đo, chưa kiểm chứng.
-
-Về tốc độ (RTX 3050 6 GB, ảnh 640 px, đầu ra thô, chưa tính SAM): VietColorNet 54 ms/ảnh với 48,6 triệu tham số; DDColor gốc 133 ms/ảnh với 55,0 triệu tham số.
-
-## Giới hạn
-
-- Tô màu có nhiều đáp án hợp lý. Ảnh đen trắng không lưu thông tin màu, nên kết quả là màu hợp lý, không phải màu lịch sử xác thực. Màu quân phục, cờ và trang phục đặc biệt dễ sai vì đỏ, xanh đậm và nâu có cùng độ sáng trên ảnh xám.
-- Màu cây cỏ và bầu trời vẫn bị mất xanh (xem bảng ám màu). Chúng tôi từng thử giảm ám màu bằng cân bằng màu hiếm và đầu ra phân loại màu, nhưng chưa cải thiện được.
-- Ảnh lịch sử không có đáp án màu độc lập. Điểm trên phim đo độ giống màu phim cũ.
-- ImageNet trong dữ liệu train chỉ có 64×64 rồi phóng lên 384 px, nên là nguồn mờ nhất.
-- DDColor gốc không học dữ liệu Việt Nam còn VietColorNet có, nên đây không phải so sánh cùng ngân sách huấn luyện.
-- Ảnh hư hỏng nặng, mất mảng hoặc trầy xước lớn cần thêm bước phục hồi riêng.
-- Tập `Hà Nội 12 ngày đêm` từng là development test ở các phiên bản đầu; từ phiên bản V9 không dùng để huấn luyện hay chọn mô hình. Các tập dùng để chọn kiến trúc chỉ nên coi là development set.
-
-## Cấu trúc thư mục
+## 8. Cấu trúc thư mục
 
 ```text
-colorization/     mô hình, dữ liệu, suy luận, chống lem, SAM, metric
-configs/          cấu hình huấn luyện (baseline và chuỗi tới VietColorNet "Tươi", "Lịch sử")
-scripts/
-  prepare/        thu thập dữ liệu, dựng protocol, tải trọng số
-  evaluate/       so sánh mô hình, thống kê, ám màu, độ bền, khảo sát người dùng
-tests/            unit test
-third_party/      mã nguồn DDColor (giữ nguyên giấy phép)
-web/              trang web (HTML, CSS, JS)
-examples/         ảnh mẫu
-docs/             báo cáo khóa luận
-data/             dữ liệu (không lưu trên Git)
-checkpoints/      mô hình (không lưu trên Git)
-outputs/          kết quả sinh ra; chỉ vài báo cáo được giữ trên Git
-server.py         máy chủ web        demo.py   giao diện Gradio
-train.py          huấn luyện baseline ImageNet
-fine_tune_vietnam.py   huấn luyện VietColorNet trên dữ liệu Việt Nam
-evaluate.py       đánh giá trên ImageNet / Việt Nam
-verify_product.py kiểm tra checkpoint và checksum
+colorization/       mô hình, dữ liệu, suy luận, chống lem, SAM, độ đo
+configs/            cấu hình huấn luyện (baseline ImageNet và các vòng tới VietColorNet)
+scripts/prepare/    thu thập dữ liệu, dựng protocol, tải trọng số
+scripts/evaluate/   so sánh mô hình, thống kê, ám màu, độ bền, khảo sát người xem
+tests/              unit test
+third_party/        mã nguồn DDColor (giữ nguyên giấy phép)
+web/  server.py     trang web và máy chủ
+demo.py             giao diện Gradio
+train.py            huấn luyện baseline ImageNet
+fine_tune_vietnam.py  huấn luyện VietColorNet trên dữ liệu Việt Nam
+verify_product.py   kiểm tra checkpoint và checksum
+examples/           ảnh mẫu cho trang web
+docs/               báo cáo khóa luận
+data/  checkpoints/  outputs/    dữ liệu, mô hình, kết quả (không lưu trên Git)
 ```
 
-`.venv/`, `data/`, `checkpoints/`, `outputs/` và file `*.pth` bị Git bỏ qua vì quá nặng; chỉ vài báo cáo được thêm có chủ đích.
+`.venv/`, `data/`, `checkpoints/`, `outputs/` và file `*.pth` bị Git bỏ qua vì quá nặng; chỉ một số báo cáo được giữ lại có chủ đích.
 
-## Phần mềm bên thứ ba
+## 9. Phần mềm và dữ liệu bên thứ ba
 
-- **DDColor** (`third_party/DDColor/`, Apache-2.0, commit `2adb63f`): X. Kang, T. Yang, W. Ouyang, P. Ren, L. Li, X. Xie, "DDColor: Towards Photo-Realistic Image Colorization via Dual Decoders", ICCV 2023. Repo: <https://github.com/piddnad/DDColor>.
-- **Segment Anything** ViT-B (Apache-2.0): A. Kirillov et al., ICCV 2023. Chỉ dùng khi suy luận để tách ranh giới vật thể, không tham gia dự đoán màu.
-- **DINOv2** ViT-S/14 (Meta, Apache-2.0): làm cầu nối ngữ nghĩa cố định.
-- **ResNet-34** (torchvision) với trọng số ImageNet.
+- **DDColor** (`third_party/DDColor/`, Apache-2.0, commit `2adb63f`): X. Kang, T. Yang, W. Ouyang, P. Ren, L. Li, X. Xie, "DDColor: Towards Photo-Realistic Image Colorization via Dual Decoders", ICCV 2023. <https://github.com/piddnad/DDColor>
+- **Segment Anything** ViT-B (Apache-2.0): A. Kirillov và cộng sự, ICCV 2023. Chỉ dùng khi suy luận để tách ranh giới vật thể, không tham gia dự đoán màu.
+- **DINOv2** ViT-S/14 (Meta, Apache-2.0): cầu nối ngữ nghĩa cố định.
+- **ResNet-34** của torchvision, trọng số ImageNet.
 
 Khi dùng ảnh Wikimedia Commons, giữ nguyên thông tin tác giả và giấy phép trong `attribution.csv`.
