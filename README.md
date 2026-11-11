@@ -110,7 +110,7 @@ Trung bình ± độ lệch chuẩn của ba seed, đầu ra thô. Seed phát h�
 |---|---|---|---|---|
 | Phim chưa thấy (436 khung) | ΔE2000 | 10,21 ± 0,57 | 11,03 | 11,43 |
 | | sai số tại biên | 8,31 ± 0,58 | 10,22 | 12,08 |
-| Ảnh hiện đại (757 ảnh) | ΔE2000 | 12,39 ± 0,29 | 12,61 | 11,77 |
+| Ảnh hiện đại (757 ảnh) | ΔE2000 | 12,38 ± 0,29 | 12,61 | 11,77 |
 | | sai số tại biên | 12,50 ± 0,15 | 12,75 | 12,91 |
 
 Trên phim, sai số tại biên của "Lịch sử" thấp hơn DDColor ở cả ba seed (thấp hơn 3,2 đến 4,4, p đã hiệu chỉnh khoảng 0,0005), và thấp hơn "Tươi" ở cả ba seed. Về ΔE trên phim, lợi thế so với DDColor còn đó nhưng ở mức biên với hai seed (p = 0,03), và so với "Tươi" thì hai trong ba seed không đạt ý nghĩa. Trên ảnh hiện đại, DDColor có ΔE thấp hơn ở cả ba seed. Độ lệch giữa các seed chỉ phản ánh bước tinh chỉnh cuối, vì "Tươi" dùng chung nên chưa được lặp lại.
@@ -148,8 +148,8 @@ DDColor được chọn nhiều nhất ở cả ba nhóm ảnh (tư liệu 65%, 
 
 | Chỉ số | Lịch sử | Tươi | DDColor gốc |
 |---|---|---|---|
-| Vùng xám, b* (đúng bằng 0) | +6,2 | +7,8 | +4,4 |
-| Cây cỏ, lệch a* | +20,2 | +21,1 | +18,4 |
+| Vùng xám, b* (đúng bằng 0) | +6,2 | +7,8 | +4,3 |
+| Cây cỏ, lệch a* | +20,2 | +21,1 | +18,3 |
 | Bầu trời, lệch b* | +26,4 | +28,9 | +21,1 |
 | Da, độ đậm so với thật (đúng bằng 1) | 0,77 | 0,90 | 1,04 |
 
