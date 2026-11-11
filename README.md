@@ -201,7 +201,6 @@ configs/          cấu hình huấn luyện (baseline và chuỗi tới VietCol
 scripts/
   prepare/        thu thập dữ liệu, dựng protocol, tải trọng số
   evaluate/       so sánh mô hình, thống kê, ám màu, độ bền, khảo sát người dùng
-  deploy/         dựng thư mục để đưa lên Hugging Face
 tests/            unit test
 third_party/      mã nguồn DDColor (giữ nguyên giấy phép)
 web/              trang web (HTML, CSS, JS)
