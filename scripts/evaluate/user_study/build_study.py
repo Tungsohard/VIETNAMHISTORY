@@ -1,15 +1,8 @@
-"""Build a blind, three-way user study comparing the two VietColorNet models and the DDColor baseline.
+"""Build the blind survey: 20 greyscale images, each coloured by three models shown in random order.
+Participants pick the most natural and real-looking one. Model names are kept only in key.json,
+which must not be shared. All models use the same pipeline (natural mode + SAM).
 
-For each of 20 greyscale images the participant sees the three colourisations in a random,
-per-image order (labelled A/B/C) and answers one question: which looks the most natural and real. Model identities are stored only in
-``key.json``, which must not be shared with participants.
-
-All three models go through the identical pipeline (mode ``natural`` + SAM), so differences
-come from the network. Image set: 5 archival photographs from ``examples/``, 8 frames of the
-held-out film (ViCoW test) and 7 held-out modern photos, all shown as luminance only.
-
-Usage:
-    python scripts/evaluate/user_study/build_study.py --output build/user_study
+Run: python scripts/evaluate/user_study/build_study.py --output build/user_study
 """
 import argparse
 import json

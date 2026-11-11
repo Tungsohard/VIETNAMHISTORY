@@ -53,9 +53,5 @@ Thumbs.db
 !/outputs/reports/statistical_comparison_official.json
 !/outputs/reports/statistical_comparison_official.md
 !/outputs/reports/colour_cast.json
-!/outputs/reports/colour_cast_natural.json
-!/outputs/reports/colour_cast_natural_v2.json
-!/outputs/reports/natural_vs_baselines.json
-!/outputs/reports/natural_vs_baselines.md
 !/outputs/reports/degradation_robustness.json
 !/outputs/reports/colour_cast_skin.json

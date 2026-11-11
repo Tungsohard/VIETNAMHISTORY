@@ -1,15 +1,8 @@
-"""Analyse the blind user study: which model do participants pick, and is the difference reliable?
+"""Analyse the survey: how often each model is picked, with a participant-level bootstrap interval (one
+person's answers are correlated), paired differences and a sign-flip test. Chance is 1/3.
+Reads participant JSON files or the CSV exported from the Google Form.
 
-Reads the JSON files returned by participants (or the CSV exported from the Google Form) and the private ``key.json`` that maps the
-shuffled A/B/C labels back to models. For each question it reports every model's share of
-"best" votes with a participant-level bootstrap 95% interval (a participant's 20 answers are
-correlated, so participants, not answers, are resampled), the paired difference between models
-and a sign-flip permutation p-value, and the same split by image group (archive, film, modern).
-The chance level is 1/3.
-
-Usage:
-    python scripts/evaluate/user_study/analyze_study.py build/user_study/key.json responses/*.json \
-        --output outputs/reports/user_study
+Run: python scripts/evaluate/user_study/analyze_study.py build/user_study/key.json answers.csv
 """
 import argparse
 import csv

@@ -6,5 +6,5 @@ if not exist ".venv\Scripts\python.exe" (
   pause
   exit /b 1
 )
-".venv\Scripts\python.exe" demo.py --open-browser
+".venv\Scripts\python.exe" server.py --open-browser
 if errorlevel 1 pause

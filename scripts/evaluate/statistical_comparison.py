@@ -1,22 +1,11 @@
-"""Statistical comparison of colourisation models on the held-out test sets.
+"""Compare models on the held-out test sets: means with block-bootstrap 95% intervals, paired differences,
+block-permutation and Wilcoxon tests.
 
-Reports, for every model and set, the mean of each per-image metric with a 95% bootstrap
-confidence interval, and for every pair of models the mean paired difference, its 95%
-bootstrap interval, a Wilcoxon signed-rank p-value and the share of images where the first
-model is better. This is what answers "is the improvement stable and reliable?" rather than
-"is the average lower?".
+Test images are made greyscale, coloured by each model and scored against the original colours. By default
+the raw network output is compared; --mode and --sam add the same post-processing for every model.
+Consecutive film frames are correlated, so the film set is resampled in blocks of 12 frames.
 
-Models colour the greyscale version of each test image and are scored against the original
-colours. By default raw model output is compared (no SAM or post-processing), so differences
-come from the networks. ``--mode natural`` applies the region-refinement post-processing and
-``--sam`` adds SAM anti-bleeding, identically for every model, to measure the full pipeline. Test frames of one film are
-strongly correlated, so ``vicow-test`` is resampled in blocks of consecutive frames.
-
-Usage:
-    python scripts/evaluate/statistical_comparison.py \
-        historical=checkpoints/models/vietcolornet_historical.pth \
-        vivid=checkpoints/models/vietcolornet_vivid.pth \
-        ddcolor=@selection --output outputs/reports/statistical_comparison
+Run: python scripts/evaluate/statistical_comparison.py historical=<checkpoint> ddcolor=@selection
 """
 import argparse
 import json

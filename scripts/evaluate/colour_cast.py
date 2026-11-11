@@ -1,16 +1,10 @@
-"""Measure colour cast (the yellow-brown tint) of colourisation models on held-out modern photos.
+"""Measure where models go yellow or lose blue/green on the modern test photos.
 
-Per image, in CIE Lab against the true colours, over pixels of one semantic colour class:
-  skin     approximate YCrCb skin mask on the true image: a*, b*, ab error and chroma ratio
-  neutral  true chroma < 5:   predicted mean b* and chroma (should be about 0)
-  green    true a* < -10:     a* error (a model that tints foliage yellow has a positive error)
-  sky      true b* < -8, L>45: b* error (a yellow cast makes it positive)
-  overall  all pixels:        mean b* error
-A cast shows up as a consistent positive b* error. Mean over images with a bootstrap 95% interval.
+Over pixels of one colour class (skin, grey, foliage, sky), in Lab against the true colours:
+predicted b* and a* errors and, for skin, chroma ratio. Skin is a rough YCrCb mask on the true image.
+Mean over images with a bootstrap 95% interval.
 
-Usage:
-    python scripts/evaluate/colour_cast.py historical=checkpoints/models/vietcolornet_historical.pth \
-        ddcolor=@selection --output outputs/reports/colour_cast
+Run: python scripts/evaluate/colour_cast.py historical=<checkpoint> ddcolor=@selection
 """
 import argparse
 import json

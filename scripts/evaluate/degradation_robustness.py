@@ -1,26 +1,12 @@
-"""Robustness of colourisation to degraded (archival-quality) greyscale input.
+"""How much does a model's colour error grow when the greyscale input is damaged like an old photo
+(blur, grain, fade, scratches, JPEG)?
 
-Real archival photographs are blurred, noisy, faded, scratched and heavily compressed, while the
-held-out test images are clean. Every test image is turned into a greyscale input and degraded
-at four levels (clean, mild, medium, severe) by a deterministic recipe, identical for all models.
-Models colour the degraded input and are scored against the ORIGINAL colours.
+The predicted L* is replaced by the true L* before scoring, so only colour errors count.
+Decided before running: "historical" counts as more robust than DDColor if, at the medium and severe
+levels on a test set, its error grows less and the 95% interval of the paired difference excludes 0
+(4 tests, Holm-corrected). Everything else is reported without a claim.
 
-To isolate colour errors from the luminance damage (which every model passes through unchanged),
-the predicted L* is replaced by the true L* before scoring: only chroma errors count.
-
-Pre-registered criterion (written before any result was seen)
--------------------------------------------------------------
-Primary outcome: the *increase* of colour error caused by degradation, i.e. (metric at level)
-minus (metric on the clean input) per image, in colour-only dE2000. At the medium and severe
-levels, on each of the two test sets, VietColorNet "historical" is called MORE ROBUST than DDColor
-if its mean increase is smaller and the 95% block-bootstrap interval of the paired difference
-(historical minus ddcolor) excludes 0. That is 4 tests (2 levels x 2 sets), corrected with Holm.
-Everything else (the "vivid" model, the mild level, other metrics) is secondary and reported
-without a claim. Results are reported whichever way they fall.
-
-Usage:
-    python scripts/evaluate/degradation_robustness.py historical=checkpoints/models/vietcolornet_historical.pth \
-        vivid=checkpoints/models/vietcolornet_vivid.pth ddcolor=@selection --stride 2
+Run: python scripts/evaluate/degradation_robustness.py historical=<checkpoint> ddcolor=@selection
 """
 import argparse
 import json
@@ -45,6 +31,9 @@ LEVELS = {  # blur sigma, noise sigma, contrast, lift, scratches, jpeg quality
 }
 METRICS = ("delta_e_colour", "ab_mae", "edge_ab_mae")
 PRIMARY_LEVELS = ("medium", "severe")
+CRITERION = ("decided before running: 'historical' is more robust than DDColor if, at the medium and severe levels "
+             "on a test set, its colour error grows less and the 95% interval of the paired difference excludes 0 "
+             "(4 tests, Holm-corrected)")
 
 
 def degrade(grey_rgb, level, seed):
@@ -119,7 +108,7 @@ def main():
         import torch
         torch.cuda.empty_cache()
 
-    report = {"stride": args.stride, "criterion": __doc__.split("Pre-registered criterion")[1].split("Usage:")[0].strip(),
+    report = {"stride": args.stride, "criterion": CRITERION,
               "sets": {}}
     primary = []
     for s in sets:

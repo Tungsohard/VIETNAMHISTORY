@@ -1,13 +1,8 @@
-"""Assemble a ready-to-upload Hugging Face Space (Gradio, CPU) in ``build/hf_space``.
+"""Build a folder for a CPU Hugging Face Space in build/hf_space: the code, the "historical" model stripped
+to inference weights (the training checkpoint also holds optimizer state and is twice as big) and,
+with --with-sam, the SAM weights.
 
-The Space contains the code, the historical-model checkpoint stripped to inference weights (the training
-checkpoint also stores optimizer state and is twice as large) and, with ``--with-sam``, the
-SAM ViT-B weights. Checkpoints are not stored in the GitHub repository, so this is the only
-place they are packaged for deployment.
-
-Usage:
-    python scripts/deploy/build_hf_space.py [--with-sam]
-Then upload the folder (see the printed instructions).
+Run: python scripts/deploy/build_hf_space.py [--with-sam]
 """
 import argparse
 import shutil

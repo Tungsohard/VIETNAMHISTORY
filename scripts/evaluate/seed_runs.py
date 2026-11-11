@@ -1,12 +1,9 @@
-"""Re-run the V15 fine-tuning with other random seeds to measure training variance.
+"""Fine-tune the "historical" model again with other seeds to see how much the result varies.
 
-Each run starts from the same source checkpoint (``vietcolornet_vivid.pth``) and differs only
-in ``seed`` (sampling order, augmentation, dropout). Results land in
-``checkpoints/runs/seed_<n>/best.pth`` and are compared with the released model afterwards by
-``statistical_comparison.py``. Only the fine-tuning stage is repeated; the source checkpoint is shared.
+Every run starts from vietcolornet_vivid.pth and only the seed changes. Checkpoints go to
+checkpoints/runs/seed_<n>/ (use epoch_03.pth, as for the released model). An interrupted run is resumed.
 
-Usage:
-    python scripts/evaluate/seed_runs.py 1 2
+Run: python scripts/evaluate/seed_runs.py 1 2
 """
 import json
 import subprocess

@@ -1,7 +1,6 @@
-"""Sắc Việt web server: custom website + JSON API on top of the VietColorNet engine.
+"""Web server for Sắc Việt: the site in web/ plus a small JSON API on top of the colourisation engines.
 
-Run:  python server.py --open-browser
-The Gradio demo (demo.py) stays available as a fallback and for model comparison.
+Run: python server.py --open-browser
 """
 import argparse
 import io
