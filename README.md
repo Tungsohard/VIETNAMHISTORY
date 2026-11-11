@@ -8,7 +8,7 @@ Ba câu hỏi mà đồ án cố trả lời:
 2. Bước tách vật thể bằng Segment Anything (SAM) có làm màu bớt lem qua ranh giới vật thể không?
 3. Các kết luận có ổn định khi lặp lại huấn luyện và có đứng vững dưới kiểm định thống kê không?
 
-Kết quả tóm tắt (chi tiết ở mục 5): VietColorNet nhỏ hơn và nhanh hơn DDColor khoảng 2,5 lần, và ít sai màu hơn ở vùng biên vật thể trên phim tư liệu. Tuy vậy 11 người tham gia khảo sát chọn màu của DDColor là tự nhiên hơn (73% số lần), và các độ đo sai số không cho thấy SAM có tác dụng. Màu cây cỏ và bầu trời vẫn là điểm yếu của cả hai mô hình.
+Kết quả tóm tắt (chi tiết ở mục 5): VietColorNet nhỏ hơn và nhanh hơn DDColor khoảng 2,5 lần, và ít sai màu hơn ở vùng biên vật thể trên phim tư liệu. Tuy vậy các độ đo sai số không cho thấy SAM có tác dụng. Màu cây cỏ và bầu trời vẫn là điểm yếu của cả hai mô hình.
 
 ## 1. Chạy thử
 
@@ -96,8 +96,6 @@ Màu "đáp án" của phim ViCoW là màu của phim cũ, nhạt hơn nhiều s
 
 **Thống kê.** Khoảng tin cậy 95% lấy bằng bootstrap (5.000 lần). Với phim, các khung liền nhau tương quan mạnh nên lấy mẫu theo khối 12 khung. Chênh lệch giữa hai mô hình tính theo cặp trên cùng ảnh, kiểm định bằng hoán vị theo khối (20.000 lần), có hiệu chỉnh Holm khi so nhiều cặp. Kiểm định Wilcoxon cũng được tính nhưng không dùng để kết luận, vì nó coi các khung liền nhau là độc lập và cho p nhỏ quá mức. Để biết kết quả có ổn định không, bước tinh chỉnh cuối của "Lịch sử" được lặp lại với ba seed (2026, 1 và 2).
 
-**Khảo sát người xem.** 20 ảnh gồm 5 ảnh tư liệu, 8 khung phim chưa thấy và 7 ảnh hiện đại. Mỗi ảnh có ba bản tô màu của ba mô hình, xáo thứ tự ngẫu nhiên và ẩn tên, và người xem chọn bản có màu tự nhiên và thật nhất. Khoảng tin cậy lấy bootstrap theo người tham gia, vì 20 câu trả lời của cùng một người không độc lập.
-
 **Đối chứng.** DDColor-T (ConvNeXt-T, ảnh 256 px) với trọng số công bố, không tinh chỉnh.
 
 ## 5. Kết quả
@@ -130,19 +128,7 @@ Cùng ba mô hình, cùng tập test, ΔE2000 của một seed (2026):
 
 Hậu xử lý cải thiện nhẹ cả ba mô hình và không đổi thứ hạng. SAM không làm giảm ΔE hay sai số tại biên (sai số biên của "Lịch sử" trên phim nhích từ 7,72 lên 7,83). Hai độ đo này không phát hiện được tác dụng của SAM, nhưng cũng chưa đủ để kết luận nó vô ích, vì chúng không đo riêng việc lem màu.
 
-### 5.3 Khảo sát người xem
-
-11 người xem (hai người đầu làm bản có thêm một câu hỏi về lem màu, không dùng ở đây).
-
-| Mô hình | Được chọn | Khoảng tin cậy 95% |
-|---|---|---|
-| DDColor gốc | 73,2% | 63,2% – 81,4% |
-| VietColorNet · Tươi | 15,9% | 11,4% – 21,4% |
-| VietColorNet · Lịch sử | 10,9% | 5,5% – 17,3% |
-
-DDColor được chọn nhiều nhất ở cả ba nhóm ảnh (tư liệu 65%, phim 75%, hiện đại 77%), và 10 trong 11 người chọn nó ở 60–90% số ảnh. Kết quả này ngược với ΔE trên phim, và khớp với lưu ý ở mục 3: ΔE trên phim đo mức giống màu phim cũ. Hạn chế của khảo sát: 11 người quen biết, mẫu nhỏ; vị trí A/B/C chưa cân bằng hoàn toàn (DDColor chỉ nằm ở vị trí A trong 2 ảnh, nhưng vẫn được chọn nhiều nhất ở cả ba vị trí); và ảnh dùng chế độ Nguyên bản chứ không phải chế độ Hiện đại mặc định của trang web.
-
-### 5.4 Ám màu
+### 5.3 Ám màu
 
 Đo trên 757 ảnh hiện đại, đầu ra thô, trên từng lớp màu của ảnh gốc: vùng xám (độ đậm thật dưới 5), cây cỏ, bầu trời, và da. Số dương nghĩa là lệch về phía vàng, hoặc mất màu xanh.
 
@@ -155,7 +141,7 @@ DDColor được chọn nhiều nhất ở cả ba nhóm ảnh (tư liệu 65%, 
 
 Cả ba mô hình đều làm cây cỏ và bầu trời mất màu xanh, và da do VietColorNet tô nhạt hơn thật. Mặt nạ da ước lượng theo màu nên lẫn cả vật không phải da, vì vậy con số về da chỉ gần đúng.
 
-### 5.5 Độ bền với ảnh xuống cấp và hiệu năng
+### 5.4 Độ bền với ảnh xuống cấp và hiệu năng
 
 Ảnh test được làm xuống cấp theo ba mức (nhẹ, vừa, nặng) bằng cách làm mờ, thêm nhiễu hạt, giảm tương phản, thêm vết xước dọc và nén JPEG mạnh; sai số được chấm chỉ trên màu (độ sáng dự đoán được thay bằng độ sáng thật). Tiêu chí được đặt trước khi chạy: "Lịch sử" bền hơn DDColor nếu ở mức vừa và nặng, trên mỗi tập, sai số tăng ít hơn và khoảng tin cậy của chênh lệch loại được 0 (4 phép kiểm). Chỉ một phép đạt: ảnh hiện đại, mức vừa (−0,63 ΔE, p = 0,003). Ảnh hiện đại mức nặng không khác biệt, và trên phim "Lịch sử" kém bền hơn (sai số tăng thêm +2,35 ở mức vừa và +3,06 ở mức nặng so với DDColor). Trên phim, sai số của DDColor còn giảm khi ảnh phai (11,37 → 9,92), có thể vì đầu ra của nó nhạt đi và gần màu phim cũ hơn; đây là suy đoán từ số đo, chưa kiểm chứng.
 
@@ -163,7 +149,7 @@ Về hiệu năng (RTX 3050 6 GB, ảnh 640 px, đầu ra thô, chưa tính SAM)
 
 ## 6. Thảo luận và giới hạn
 
-Câu hỏi 1: huấn luyện thêm trên dữ liệu Việt Nam giúp VietColorNet gần màu phim tư liệu hơn và giảm sai số ở biên trên phim, nhưng không làm cho màu tự nhiên hơn trong mắt người xem. Chúng tôi từng thử giảm ám màu bằng cân bằng màu hiếm và đầu ra phân loại màu, nhưng không cải thiện được. Câu hỏi 2: các độ đo hiện có không chứng minh được tác dụng của SAM, và khảo sát không hỏi riêng về lem màu, nên câu hỏi này vẫn mở. Câu hỏi 3: kết luận về sai số tại biên ổn định giữa các seed, còn kết luận về ΔE giữa hai mô hình VietColorNet thì không.
+Câu hỏi 1: huấn luyện thêm trên dữ liệu Việt Nam giúp VietColorNet gần màu phim tư liệu hơn và giảm sai số ở biên trên phim, nhưng không giải quyết được ám màu (mục 5.3) và trên ảnh hiện đại không giảm được ΔE so với DDColor. Chúng tôi từng thử giảm ám màu bằng cân bằng màu hiếm và đầu ra phân loại màu, nhưng không cải thiện được. Câu hỏi 2: các độ đo hiện có không chứng minh được tác dụng của SAM, nên câu hỏi này vẫn mở. Câu hỏi 3: kết luận về sai số tại biên ổn định giữa các seed, còn kết luận về ΔE giữa hai mô hình VietColorNet thì không.
 
 Những điều cần cân nhắc khi đọc các con số trên:
 
@@ -172,7 +158,7 @@ Những điều cần cân nhắc khi đọc các con số trên:
 - Màu cây cỏ và bầu trời vẫn mất xanh ở cả hai mô hình VietColorNet, và da bị tô nhạt.
 - DDColor không học dữ liệu Việt Nam còn VietColorNet có, nên đây không phải so sánh cùng ngân sách huấn luyện; ImageNet trong dữ liệu train chỉ có độ phân giải 64×64 rồi phóng lên 384 px.
 - Phim *Hà Nội 12 ngày đêm* từng là development test ở các phiên bản đầu; từ phiên bản V9 trở đi nó không được dùng để huấn luyện hay chọn mô hình, nhưng kết quả trên nó vẫn mang tính development.
-- Số seed (ba) và số người khảo sát (11) đều nhỏ.
+- Số seed (ba) nhỏ.
 - Ảnh hư hỏng nặng, mất mảng hoặc xước lớn cần thêm bước phục hồi riêng; chưa đo tính nhất quán theo thời gian khi tô video.
 
 Điểm có thể dùng lại của đồ án nằm ở phương pháp: phát hiện việc cách chia ngẫu nhiên theo khung hình làm lộ test, cách chia theo phim, và quy trình đánh giá có khoảng tin cậy, kiểm định theo khối và độ lệch theo seed.
@@ -216,7 +202,7 @@ python scripts/evaluate/colour_cast.py historical=checkpoints/models/vietcolorne
 python scripts/evaluate/degradation_robustness.py historical=checkpoints/models/vietcolornet_historical.pth ddcolor=@selection
 ```
 
-`statistical_comparison.py` nhận thêm `--mode natural --sam` để bật hậu xử lý và SAM giống nhau cho mọi mô hình. Khảo sát người xem: `scripts/evaluate/user_study/build_study.py` dựng trang so sánh mù (kèm `--form-url` và `--form-entry` thì câu trả lời tự gửi về một Google Form), và `analyze_study.py` phân tích file JSON hoặc CSV xuất từ form. Các báo cáo số liệu nằm trong `outputs/reports/`.
+`statistical_comparison.py` nhận thêm `--mode natural --sam` để bật hậu xử lý và SAM giống nhau cho mọi mô hình. Các báo cáo số liệu nằm trong `outputs/reports/`.
 
 `evaluate.py` và `train.py` thuộc giai đoạn baseline ImageNet ban đầu (`evaluate.py` đọc một file `model_selection.json` của giai đoạn đó) và chưa được kiểm tra lại với cấu trúc hiện tại.
 
@@ -226,7 +212,7 @@ python scripts/evaluate/degradation_robustness.py historical=checkpoints/models/
 colorization/       mô hình, dữ liệu, suy luận, chống lem, SAM, độ đo
 configs/            cấu hình huấn luyện (baseline ImageNet và các vòng tới VietColorNet)
 scripts/prepare/    thu thập dữ liệu, dựng protocol, tải trọng số
-scripts/evaluate/   so sánh mô hình, thống kê, ám màu, độ bền, khảo sát người xem
+scripts/evaluate/   so sánh mô hình, thống kê, ám màu, độ bền
 tests/              unit test
 third_party/        mã nguồn DDColor (giữ nguyên giấy phép)
 web/  server.py     trang web và máy chủ
