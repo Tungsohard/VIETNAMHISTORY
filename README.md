@@ -30,14 +30,20 @@ python scripts/prepare/download_ddcolor.py        # DDColor-T, mô hình đối 
 python scripts/prepare/download_sam.py            # Segment Anything ViT-B, cho bước chống lem
 ```
 
-Hai file này có SHA-256 cố định; `outputs/reports/baseline_selection.json` ghi checksum của file DDColor, và `verify_product.py` đối chiếu nó. Chỉ với DDColor, trang web đã chạy được: menu khi đó chỉ có "DDColor gốc", và thêm `--no-sam` nếu chưa tải SAM.
+Hai file này có SHA-256 cố định; `outputs/reports/baseline_selection.json` ghi checksum của file DDColor, và `verify_product.py` đối chiếu nó. Chỉ với DDColor, trang web đã chạy được: menu khi đó chỉ có "DDColor gốc", và thêm `--no-sam` nếu chưa tải SAM. Muốn có cả VietColorNet thì tải thêm hai checkpoint ở đoạn dưới.
 
 ```powershell
 python verify_product.py          # kiểm tra trọng số, báo mô hình nào đang thiếu
 python server.py --open-browser   # trang web tại http://127.0.0.1:8000
 ```
 
-Hai mô hình VietColorNet cần các file `checkpoints/models/vietcolornet_historical.pth` và `vietcolornet_vivid.pth`. Hai file này chưa được công bố cùng mã nguồn; có thể xin từ tác giả hoặc tự huấn luyện theo mục 7. Khi chúng có mặt, chúng tự xuất hiện trong menu, và "Lịch sử" trở thành mô hình mặc định.
+Hai mô hình VietColorNet (bản chỉ chứa trọng số suy luận, mỗi file khoảng 186 MB) nằm ở mục Releases của repo này (`weights-v1`) và tải bằng:
+
+```powershell
+python scripts/prepare/download_vietcolornet.py
+```
+
+Script kiểm tra SHA-256 và đặt file vào `checkpoints/models/`. Khi chúng có mặt, chúng tự xuất hiện trong menu và "Lịch sử" trở thành mô hình mặc định. Hai mô hình được huấn luyện trên ảnh từ nhiều nguồn (mục 3); nên kiểm tra giấy phép của các nguồn đó trước khi dùng trọng số ngoài mục đích nghiên cứu.
 
 Có thể bấm đúp `start_demo.bat` thay cho lệnh thứ hai. `--no-sam` tắt bước chống lem (mỗi ảnh SAM thêm khoảng 4–6 giây trên RTX 3050), `--host 0.0.0.0` cho máy khác trong mạng LAN truy cập. Giao diện Gradio cũ vẫn chạy được bằng `python demo.py --open-browser`.
 

@@ -58,7 +58,7 @@ def main():
 
     models = ROOT / "checkpoints" / "models"
     for name in ("vietcolornet_historical.pth", "vietcolornet_vivid.pth"):
-        status = "found" if (models / name).is_file() else "MISSING (the web page will run without this model)"
+        status = "found" if (models / name).is_file() else "MISSING (run scripts/prepare/download_vietcolornet.py; the web page runs without it)"
         print(f"{name}: {status}")
     sam = ROOT / "checkpoints" / "pretrained" / "sam"
     print("SAM weights:", "found" if sam.is_dir() and any(sam.iterdir()) else "MISSING (run scripts/prepare/download_sam.py, or start with --no-sam)")
