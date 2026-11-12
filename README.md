@@ -2,7 +2,7 @@
 
 Ảnh và phim tư liệu về lịch sử Việt Nam phần lớn là đen trắng. Đồ án này xây dựng một mạng tô màu, **VietColorNet**, huấn luyện trên ảnh màu Việt Nam và khung hình phim tư liệu, rồi đánh giá nó so với **DDColor** (Kang và cộng sự, ICCV 2023), một mô hình công bố sẵn dùng làm đối chứng. Kèm theo là một trang web nhỏ để thử tô màu ảnh.
 
-Ba câu hỏi mà đồ án cố trả lời:
+Ba câu hỏi mà đồ án trả lời:
 
 1. Huấn luyện thêm trên dữ liệu Việt Nam có giúp tô màu ảnh tư liệu Việt Nam tốt hơn một mô hình tổng quát không?
 2. Bước tách vật thể bằng Segment Anything (SAM) có làm màu bớt lem qua ranh giới vật thể không?
