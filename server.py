@@ -4,12 +4,14 @@ Run: python server.py --open-browser
 """
 import argparse
 import io
+import math
 import threading
 import time
 import uuid
 import webbrowser
 from pathlib import Path
 
+import torch
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -23,6 +25,7 @@ WEB = ROOT / "web"
 EXAMPLES = ROOT / "examples"
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 MAX_SIDE = 2400
+MAX_PIXELS = legacy_demo.MAX_IMAGE_PIXELS   # 40 megapixels, same limit as the Gradio demo
 MODES = {"natural", "modern", "vivid"}
 RESULT_TTL_SECONDS = 3600
 
@@ -37,11 +40,17 @@ EXAMPLE_INFO = {
 }
 
 
+def release_gpu():
+    """Hand cached GPU memory back after a request, so a 6 GB card is not held at its peak while idle."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def create_app(engines, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     default_key = "vietcolornet" if "vietcolornet" in engines else next(iter(engines))
     lock = threading.Lock()
-    app = FastAPI(title="Sắc Việt", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Sắc Việt", docs_url=None, redoc_url=None, openapi_url=None)
 
     def cleanup():
         cutoff = time.time() - RESULT_TTL_SECONDS
@@ -50,11 +59,12 @@ def create_app(engines, output_dir):
                 path.unlink(missing_ok=True)
 
     def run(image, mode, strength, model_key):
-        item = engines.get(model_key) or engines[default_key]
+        item = engines[model_key] if model_key else engines[default_key]
         gray = ImageOps.grayscale(image).convert("RGB")
         started = time.perf_counter()
         with lock:
             result = item["engine"].colorize_pil(image, strength, mode=mode)
+            release_gpu()
         elapsed = time.perf_counter() - started
         token = uuid.uuid4().hex[:12]
         gray.save(output_dir / f"web_{token}_gray.png", optimize=True)
@@ -65,7 +75,14 @@ def create_app(engines, output_dir):
 
     def prepare(raw):
         try:
-            image = ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGB")
+            image = Image.open(io.BytesIO(raw))
+            pixels = image.width * image.height      # read from the header, before the image is decoded
+        except Exception:
+            raise HTTPException(400, "Không đọc được ảnh. Hãy dùng JPG, PNG hoặc WebP.")
+        if pixels > MAX_PIXELS:
+            raise HTTPException(400, f"Ảnh vượt quá {MAX_PIXELS // 1_000_000} megapixel. Hãy giảm độ phân giải.")
+        try:
+            image = ImageOps.exif_transpose(image).convert("RGB")
         except Exception:
             raise HTTPException(400, "Không đọc được ảnh. Hãy dùng JPG, PNG hoặc WebP.")
         if max(image.size) > MAX_SIDE:
@@ -90,11 +107,15 @@ def create_app(engines, output_dir):
                  strength: float = Form(1.0), model: str = Form("")):
         if mode not in MODES:
             raise HTTPException(400, "Chế độ không hợp lệ.")
+        if not math.isfinite(strength) or not 0.5 <= strength <= 1.5:
+            raise HTTPException(400, "Cường độ màu phải nằm trong khoảng 0,5 đến 1,5.")
+        if model and model not in engines:
+            raise HTTPException(400, "Mô hình không tồn tại.")
         raw = file.file.read(MAX_UPLOAD_BYTES + 1)
         if len(raw) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"Ảnh lớn hơn {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.")
         cleanup()
-        return run(prepare(raw), mode, min(max(strength, 0.5), 1.5), model)
+        return run(prepare(raw), mode, strength, model)
 
     @app.get("/api/example/{name}")
     def example(name: str, mode: str = "modern"):
@@ -108,6 +129,7 @@ def create_app(engines, output_dir):
             image = prepare(path.read_bytes())
             with lock:
                 result = engines[default_key]["engine"].colorize_pil(image, 1.0, mode=mode)
+                release_gpu()
             ImageOps.grayscale(image).convert("RGB").save(gray_cache, optimize=True)
             result.save(color_cache, optimize=True)
         return {"gray": f"/results/{gray_cache.name}", "color": f"/results/{color_cache.name}"}

@@ -97,6 +97,7 @@ def evaluate(engine, images):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("checkpoints", nargs="+", help="NAME=path/to/checkpoint.pth")
     parser.add_argument("--set", dest="sets", action="append", default=None,

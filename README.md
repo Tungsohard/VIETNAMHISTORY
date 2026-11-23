@@ -23,7 +23,7 @@ python -m unittest discover -s tests
 
 Một số test cần thư mục `data/` (không có trên Git) và tự bỏ qua khi thiếu nó, nên với bản clone mới kết quả bình thường là "OK (skipped=9)".
 
-Dữ liệu và checkpoint không nằm trên Git vì quá nặng (dữ liệu hàng chục GB, mỗi checkpoint VietColorNet khoảng 400 MB). Hai trọng số công khai tải được ngay:
+Dữ liệu và checkpoint không nằm trên Git vì quá nặng (dữ liệu hàng chục GB, mỗi checkpoint VietColorNet khoảng 186 MB ở dạng chỉ trọng số suy luận). Hai trọng số công khai tải được ngay:
 
 ```powershell
 python scripts/prepare/download_ddcolor.py        # DDColor-T, mô hình đối chứng

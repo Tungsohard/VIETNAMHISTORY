@@ -5,6 +5,7 @@ checkpoints/runs/seed_<n>/ (use epoch_03.pth, as for the released model). An int
 
 Run: python scripts/evaluate/seed_runs.py 1 2
 """
+import argparse
 import json
 import subprocess
 import sys
@@ -15,7 +16,9 @@ BASE_CONFIG = ROOT / "configs" / "vietcolornet_v15_vicow.json"
 
 
 def main():
-    seeds = [int(s) for s in sys.argv[1:]] or [1, 2]
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("seeds", nargs="*", type=int, default=[1, 2], help="seeds to train (default: 1 2)")
+    seeds = parser.parse_args().seeds or [1, 2]
     for seed in seeds:
         output = ROOT / "checkpoints" / "runs" / f"seed_{seed}"
         config = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))

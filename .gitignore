@@ -1,4 +1,5 @@
-# README is the main Markdown document; the data-source notes are kept too.
+# Markdown is ignored on purpose, except the files listed below. A new .md file stays untracked
+# until you add a line like `!/docs/NOTES.md` here (or `git add -f`).
 **/*.md
 !/README.md
 !/data/sources/README.md

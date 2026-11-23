@@ -3,6 +3,7 @@
 Files go to checkpoints/models/ and are checked against the SHA-256 listed below.
 Run: python scripts/prepare/download_vietcolornet.py
 """
+import argparse
 import hashlib
 import sys
 from pathlib import Path
@@ -38,6 +39,11 @@ def download(name, expected):
     print(f"{name}: ok")
 
 
-if __name__ == "__main__":
+def main():
+    argparse.ArgumentParser(description=__doc__).parse_args()   # only --help; nothing is configurable
     for file_name, sha in FILES.items():
         download(file_name, sha)
+
+
+if __name__ == "__main__":
+    main()
